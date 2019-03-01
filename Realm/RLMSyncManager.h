@@ -20,7 +20,9 @@
 
 #import "RLMSyncUtil.h"
 
-@class RLMSyncSession;
+@class RLMSyncSession, RLMSyncTimeoutOptions;
+
+NS_ASSUME_NONNULL_BEGIN
 
 /// An enum representing different levels of sync-related logging that can be configured.
 typedef NS_ENUM(NSUInteger, RLMSyncLogLevel) {
@@ -54,9 +56,7 @@ typedef NS_ENUM(NSUInteger, RLMSyncLogLevel) {
 ///
 /// The log function may be called from multiple threads simultaneously, and is
 /// responsible for performing its own synchronization if any is required.
-typedef void (*RLMSyncLogFunction)(RLMSyncLogLevel level, NSString *_Nonnull message);
-
-NS_ASSUME_NONNULL_BEGIN
+typedef void (*RLMSyncLogFunction)(RLMSyncLogLevel level, NSString *message);
 
 /// A block type representing a block which can be used to report a sync-related error to the application. If the error
 /// pertains to a specific session, that session will also be passed into the block.
@@ -155,6 +155,8 @@ typedef void(^RLMSyncErrorReportingBlock)(NSError *, RLMSyncSession * _Nullable)
  */
 @property (nullable, nonatomic, copy) NSDictionary<NSString *, NSURL *> *pinnedCertificatePaths;
 
+@property (nullable, atomic, copy) RLMSyncTimeoutOptions *timeoutOptions;
+
 /// The sole instance of the singleton.
 + (instancetype)sharedManager NS_REFINED_FOR_SWIFT;
 
@@ -164,6 +166,64 @@ typedef void(^RLMSyncErrorReportingBlock)(NSError *, RLMSyncSession * _Nullable)
 /// :nodoc:
 + (instancetype)new __attribute__((unavailable("RLMSyncManager cannot be created directly")));
 
-NS_ASSUME_NONNULL_END
-
 @end
+
+@interface RLMSyncTimeoutOptions : NSObject
+/// The maximum number of milliseconds to allow for a connection to
+/// become fully established. This includes the time to resolve the
+/// network address, the TCP connect operation, the SSL handshake, and
+/// the WebSocket handshake.
+@property (nonatomic) NSUInteger connectTimeout;
+
+/// The number of milliseconds to keep a connection open after all
+/// sessions have been abandoned (or suspended by errors).
+///
+/// The purpose of this linger time is to avoid close/reopen cycles
+/// during short periods of time where there are no sessions interested
+/// in using the connection.
+///
+/// If the connection gets closed due to an error before the linger time
+/// expires, the connection will be kept closed until there are sessions
+/// willing to use it again.
+@property (nonatomic) NSUInteger connectionLingerTime;
+
+/// The client will send PING messages periodically to allow the server
+/// to detect dead connections (heartbeat). This parameter specifies the
+/// time, in milliseconds, between these PING messages.
+@property (nonatomic) NSUInteger pingKeepalivePeriod;
+
+/// Whenever the server receives a PING message, it is supposed to
+/// respond with a PONG messsage to allow the client to detect dead
+/// connections (heartbeat). This parameter specifies the time, in
+/// milliseconds, that the client will wait for the PONG response
+/// message before it assumes that the connection is dead, and
+/// terminates it.
+@property (nonatomic) NSUInteger pongKeepaliveTimeout;
+
+/// The maximum amount of time, in milliseconds, since the loss of a
+/// prior connection, for a new connection to be considered a *fast
+/// reconnect*.
+///
+/// In general, when a client establishes a connection to the server,
+/// the uploading process remains suspended until the initial
+/// downloading process completes (as if by invocation of
+/// Session::async_wait_for_download_completion()). However, to avoid
+/// unnecessary latency in change propagation during ongoing
+/// application-level activity, if the new connection is established
+/// less than a certain amount of time (`fast_reconnect_limit`) since
+/// the client was previously connected to the server, then the
+/// uploading process will be activated immediately.
+///
+/// For now, the purpose of the general delaying of the activation of
+/// the uploading process, is to increase the chance of multiple initial
+/// transactions on the client-side, to be uploaded to, and processed by
+/// the server as a single unit. In the longer run, the intention is
+/// that the client should upload transformed (from reciprocal history),
+/// rather than original changesets when applicable to reduce the need
+/// for changeset to be transformed on both sides. The delaying of the
+/// upload process will increase the number of cases where this is
+/// possible.
+@property (nonatomic) NSUInteger fastReconnectLimit;
+@end
+
+NS_ASSUME_NONNULL_END
