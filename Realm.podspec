@@ -17,6 +17,7 @@ Pod::Spec.new do |s|
   has_versioned_docs        = !(version =~ /alpha|beta|rc/)
   s.documentation_url       = "https://realm.io/docs/objc/#{has_versioned_docs ? s.version : 'latest'}"
   s.license                 = { :type => 'Apache 2.0', :file => 'LICENSE' }
+  s.swift_version = '5.0'
 
   public_header_files       = 'include/**/RLMArray.h',
                               'include/**/RLMCollection.h',
