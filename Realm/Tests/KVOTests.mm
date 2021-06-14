@@ -25,10 +25,8 @@
 #import "RLMRealm_Private.hpp"
 #import "RLMSchema_Private.h"
 
-#import "shared_realm.hpp"
-
-#import <realm/descriptor.hpp>
 #import <realm/group.hpp>
+#import <realm/object-store/shared_realm.hpp>
 
 #import <atomic>
 #import <memory>
@@ -52,21 +50,25 @@ RLM_ARRAY_TYPE(KVOLinkObject1)
 @property NSString            *stringCol;
 @property NSData              *binaryCol;
 @property NSDate              *dateCol;
+@property RLMObjectId         *objectIdCol;
+@property RLMDecimal128       *decimal128Col;
 @property KVOObject           *objectCol;
 
-@property RLMArray<RLMBool>   *boolArray;
-@property RLMArray<RLMInt>    *intArray;
-@property RLMArray<RLMFloat>  *floatArray;
-@property RLMArray<RLMDouble> *doubleArray;
-@property RLMArray<RLMString> *stringArray;
-@property RLMArray<RLMData>   *dataArray;
-@property RLMArray<RLMDate>   *dateArray;
-@property RLMArray<KVOObject> *objectArray;
+@property RLMArray<RLMBool>       *boolArray;
+@property RLMArray<RLMInt>        *intArray;
+@property RLMArray<RLMFloat>      *floatArray;
+@property RLMArray<RLMDouble>     *doubleArray;
+@property RLMArray<RLMString>     *stringArray;
+@property RLMArray<RLMData>       *dataArray;
+@property RLMArray<RLMDate>       *dateArray;
+@property RLMArray<RLMObjectId>   *objectIdArray;
+@property RLMArray<RLMDecimal128> *decimal128Array;
+@property RLMArray<KVOObject>     *objectArray;
 
-@property NSNumber<RLMInt> *optIntCol;
-@property NSNumber<RLMFloat> *optFloatCol;
+@property NSNumber<RLMInt>    *optIntCol;
+@property NSNumber<RLMFloat>  *optFloatCol;
 @property NSNumber<RLMDouble> *optDoubleCol;
-@property NSNumber<RLMBool> *optBoolCol;
+@property NSNumber<RLMBool>   *optBoolCol;
 @end
 @implementation KVOObject
 + (NSString *)primaryKey {
@@ -113,6 +115,8 @@ RLM_ARRAY_TYPE(KVOLinkObject1)
 @property NSData         *binaryCol;
 @property NSDate         *dateCol;
 @property PlainKVOObject *objectCol;
+@property RLMObjectId    *objectIdCol;
+@property RLMDecimal128  *decimal128Col;
 
 @property NSMutableArray *boolArray;
 @property NSMutableArray *intArray;
@@ -122,6 +126,8 @@ RLM_ARRAY_TYPE(KVOLinkObject1)
 @property NSMutableArray *dataArray;
 @property NSMutableArray *dateArray;
 @property NSMutableArray *objectArray;
+@property NSMutableArray *objectIdArray;
+@property NSMutableArray *decimal128Array;
 
 @property NSNumber<RLMInt> *optIntCol;
 @property NSNumber<RLMFloat> *optFloatCol;
@@ -234,6 +240,7 @@ public:
             XCTFail(@"%@", e.description);
         }
         XCTAssertEqual(0U, _notifications.count);
+        static_cast<void>(self); // Pre-12 versions of Xcode require the self variable but 12 doesn't use it
     }
 
     // record a single notification
@@ -242,6 +249,7 @@ public:
         XCTAssertEqual(obj, _obj);
         XCTAssertEqualObjects(key, _keyPath);
         [_notifications addObject:changeDictionary.copy];
+        static_cast<void>(self); // Pre-12 versions of Xcode require the self variable but 12 doesn't use it
     }
 
     // ensure that the observed object is updated for any changes made to the
@@ -345,6 +353,8 @@ public:
     obj.stringArray = [NSMutableArray array];
     obj.dataArray = [NSMutableArray array];
     obj.dateArray = [NSMutableArray array];
+    obj.objectIdArray = [NSMutableArray array];
+    obj.decimal128Array = [NSMutableArray array];
     obj.objectArray = [NSMutableArray array];
     return obj;
 }
@@ -377,6 +387,14 @@ public:
 }
 
 - (void)testRemoveObserver {
+    // iOS 14.2 beta 2 has stopped throwing exceptions when a KVO observer is removed that does not exist
+    // FIXME: revisit this once 14.2 is out to see if this was an intended change
+#if REALM_PLATFORM_IOS
+    if (@available(iOS 14.2, *)) {
+        return;
+    }
+#endif
+
     KVOObject *obj = [self createObject];
     XCTAssertThrowsSpecificNamed([obj removeObserver:self forKeyPath:@"int32Col"], NSException, NSRangeException);
     XCTAssertThrowsSpecificNamed([obj removeObserver:self forKeyPath:@"int32Col" context:nullptr], NSException, NSRangeException);
@@ -675,6 +693,24 @@ public:
     }
 
     {
+        KVORecorder r(self, obj, @"objectIdCol");
+        RLMObjectId *objectId = [RLMObjectId objectId];
+        obj.objectIdCol = objectId;
+        AssertChanged(r, NSNull.null, objectId);
+        obj.objectIdCol = nil;
+        AssertChanged(r, objectId, NSNull.null);
+    }
+
+    {
+        KVORecorder r(self, obj, @"decimal128Col");
+        RLMDecimal128 *decimal128 = [[RLMDecimal128 alloc] initWithNumber:@1];
+        obj.decimal128Col = decimal128;
+        AssertChanged(r, NSNull.null, decimal128);
+        obj.decimal128Col = nil;
+        AssertChanged(r, decimal128, NSNull.null);
+    }
+
+    {
         KVORecorder r(self, obj, @"objectCol");
         obj.objectCol = obj;
         AssertChanged(r, NSNull.null, [self observableForObject:obj]);
@@ -727,6 +763,20 @@ public:
     {
         KVORecorder r(self, obj, @"dateArray");
         obj.dateArray = obj.dateArray;
+        r.refresh();
+        r.pop_front(); // asserts that there's something to pop
+    }
+
+    {
+        KVORecorder r(self, obj, @"objectIdArray");
+        obj.objectIdArray = obj.objectIdArray;
+        r.refresh();
+        r.pop_front(); // asserts that there's something to pop
+    }
+
+    {
+        KVORecorder r(self, obj, @"decimal128Array");
+        obj.decimal128Array = obj.decimal128Array;
         r.refresh();
         r.pop_front(); // asserts that there's something to pop
     }
@@ -840,6 +890,24 @@ public:
         AssertChanged(r, [NSDate dateWithTimeIntervalSinceReferenceDate:0], date);
         [obj setValue:nil forKey:@"dateCol"];
         AssertChanged(r, date, NSNull.null);
+    }
+
+    {
+        KVORecorder r(self, obj, @"objectIdCol");
+        RLMObjectId *objectId = [RLMObjectId objectId];
+        [obj setValue:objectId forKey:@"objectIdCol"];
+        AssertChanged(r, NSNull.null, objectId);
+        [obj setValue:nil forKey:@"objectIdCol"];
+        AssertChanged(r, objectId, NSNull.null);
+    }
+
+    {
+        KVORecorder r(self, obj, @"decimal128Col");
+        RLMDecimal128 *decimal128 = [[RLMDecimal128 alloc] initWithNumber:@1];
+        [obj setValue:decimal128 forKey:@"decimal128Col"];
+        AssertChanged(r, NSNull.null, decimal128);
+        [obj setValue:nil forKey:@"decimal128Col"];
+        AssertChanged(r, decimal128, NSNull.null);
     }
 
     {
@@ -1172,6 +1240,17 @@ public:
     AssertChanged(r, @NO, @YES);
 }
 
+- (void)testSharedSchemaOnObservedObjectGivesOriginalSchema {
+    KVOObject *obj = [self createObject];
+    if (![obj isKindOfClass:RLMObjectBase.class]) {
+        return;
+    }
+
+    RLMObjectSchema *original = [obj.class sharedSchema];
+    KVORecorder r(self, obj, @"boolCol");
+    XCTAssertEqual(original, [obj.class sharedSchema]); // note: intentionally not EqualObjects
+}
+
 // RLMArray doesn't support @count at all
 //- (void)testObserveArrayCount {
 //    KVOObject *obj = [self createObject];
@@ -1263,7 +1342,7 @@ public:
 - (RLMRealm *)getRealm {
     RLMRealmConfiguration *configuration = [[RLMRealmConfiguration alloc] init];
     configuration.inMemoryIdentifier = @"test";
-    configuration.schemaMode = realm::SchemaMode::Additive;
+    configuration.schemaMode = realm::SchemaMode::AdditiveDiscovered;
     return [RLMRealm realmWithConfiguration:configuration error:nil];
 }
 
@@ -1279,6 +1358,10 @@ public:
     return [KVOLinkObject2 createInRealm:_realm withValue:@[@(++pk), @[@(++pk), [self createObject], @[]], @[]]];
 }
 
+- (EmbeddedIntParentObject *)createEmbeddedObject {
+    return [EmbeddedIntParentObject createInRealm:_realm withValue:@[@1, @[@2], @[@[@3]]]];
+}
+
 - (void)testDeleteObservedObject {
     KVOObject *obj = [self createObject];
     KVORecorder r1(self, obj, @"boolCol");
@@ -1286,6 +1369,31 @@ public:
     [self.realm deleteObject:obj];
     AssertChanged(r2, @NO, @YES);
     // should not crash
+}
+
+- (void)testDeleteMultipleObservedObjects {
+    KVOObject *obj1 = [self createObject];
+    KVOObject *obj2 = [self createObject];
+    KVOObject *obj3 = [self createObject];
+
+    KVORecorder r1(self, obj1, RLMInvalidatedKey);
+    KVORecorder r2(self, obj2, RLMInvalidatedKey);
+    KVORecorder r3(self, obj3, RLMInvalidatedKey);
+
+    [self.realm deleteObject:obj2];
+    AssertChanged(r2, @NO, @YES);
+    XCTAssertTrue(r1.empty());
+    XCTAssertTrue(r3.empty());
+
+    [self.realm deleteObject:obj3];
+    AssertChanged(r3, @NO, @YES);
+    XCTAssertTrue(r1.empty());
+    XCTAssertTrue(r2.empty());
+
+    [self.realm deleteObject:obj1];
+    AssertChanged(r1, @NO, @YES);
+    XCTAssertTrue(r2.empty());
+    XCTAssertTrue(r3.empty());
 }
 
 - (void)testDeleteMiddleOfKeyPath {
@@ -1423,9 +1531,9 @@ public:
 - (void)testDeleteObjectsInArrayViaTableViewClear {
     KVOLinkObject2 *obj = [self createLinkObject];
     KVOLinkObject2 *obj2 = [self createLinkObject];
-    [obj.array addObject:obj.obj];
-    [obj.array addObject:obj.obj];
     [obj.array addObject:obj2.obj];
+    [obj.array addObject:obj.obj];
+    [obj.array addObject:obj.obj];
 
     KVORecorder r(self, obj, @"array");
     RLMResults *results = [KVOLinkObject1 objectsInRealm:self.realm where:@"TRUEPREDICATE"];
@@ -1466,6 +1574,92 @@ public:
         AssertNotification(r);
     }
 }
+
+- (void)testDeleteParentOfObservedEmbeddedObject {
+    EmbeddedIntParentObject *obj = [self createEmbeddedObject];
+    KVORecorder r1(self, obj, @"object");
+    KVORecorder r2(self, obj, @"object.invalidated");
+    KVORecorder r3(self, obj.object, RLMInvalidatedKey);
+    [self.realm deleteObject:obj];
+    AssertChanged(r2, @NO, @YES);
+    AssertChanged(r3, @NO, @YES);
+}
+
+- (void)testSetLinkToEmbeddedObjectToNil {
+    EmbeddedIntParentObject *obj = [self createEmbeddedObject];
+    KVORecorder r1(self, obj, @"object.invalidated");
+    KVORecorder r2(self, obj.object, RLMInvalidatedKey);
+    obj.object = nil;
+
+    AssertChanged(r1, @NO, NSNull.null);
+    AssertChanged(r2, @NO, @YES);
+}
+
+- (void)testSetLinkToEmbeddedObjectToNewObject {
+    EmbeddedIntParentObject *obj = [self createEmbeddedObject];
+    KVORecorder r1(self, obj, @"object.invalidated");
+    KVORecorder r2(self, obj.object, RLMInvalidatedKey);
+    obj.object = [[EmbeddedIntObject alloc] init];
+
+    AssertChanged(r1, @NO, @NO);
+    AssertChanged(r2, @NO, @YES);
+}
+
+- (void)testDynamicSetLinkToEmbeddedObjectToNil {
+    EmbeddedIntParentObject *obj = [self createEmbeddedObject];
+    KVORecorder r1(self, obj, @"object.invalidated");
+    KVORecorder r2(self, obj.object, RLMInvalidatedKey);
+    obj[@"object"] = nil;
+
+    AssertChanged(r1, @NO, NSNull.null);
+    AssertChanged(r2, @NO, @YES);
+}
+
+- (void)testDynamicSetLinkToEmbeddedObjectToNewObject {
+    EmbeddedIntParentObject *obj = [self createEmbeddedObject];
+    KVORecorder r1(self, obj, @"object.invalidated");
+    KVORecorder r2(self, obj.object, RLMInvalidatedKey);
+    obj[@"object"] = [[EmbeddedIntObject alloc] init];
+
+    AssertChanged(r1, @NO, @NO);
+    AssertChanged(r2, @NO, @YES);
+}
+
+- (void)testRemoveEmbeddedObjectFromArray {
+    EmbeddedIntParentObject *obj = [self createEmbeddedObject];
+    KVORecorder r(self, obj.array[0], RLMInvalidatedKey);
+    [obj.array removeAllObjects];
+    AssertChanged(r, @NO, @YES);
+}
+
+- (void)testOverwriteEmbeddedObjectInArray {
+    EmbeddedIntParentObject *obj = [self createEmbeddedObject];
+    KVORecorder r(self, obj, @"array");
+    KVORecorder r2(self, obj.array[0], RLMInvalidatedKey);
+    obj.array[0] = [[EmbeddedIntObject alloc] init];
+    AssertIndexChange(NSKeyValueChangeReplacement, ([NSIndexSet indexSetWithIndexesInRange:{0, 1}]));
+    AssertChanged(r2, @NO, @YES);
+}
+
+- (void)testOverwriteEmbeddedObjectViaAddParent {
+    EmbeddedIntParentObject *obj = [self createEmbeddedObject];
+    KVORecorder r1(self, obj.object, RLMInvalidatedKey);
+    KVORecorder r2(self, obj.array[0], RLMInvalidatedKey);
+
+    [self.realm addOrUpdateObject:[[EmbeddedIntParentObject alloc] initWithValue:@[@1]]];
+    AssertChanged(r1, @NO, @YES);
+    AssertChanged(r2, @NO, @YES);
+}
+
+- (void)testOverwriteEmbeddedObjectViaCreateParent {
+    EmbeddedIntParentObject *obj = [self createEmbeddedObject];
+    KVORecorder r1(self, obj.object, RLMInvalidatedKey);
+    KVORecorder r2(self, obj.array[0], RLMInvalidatedKey);
+
+    [EmbeddedIntParentObject createOrUpdateInRealm:self.realm withValue:@[@1, NSNull.null, NSNull.null]];
+    AssertChanged(r1, @NO, @YES);
+    AssertChanged(r2, @NO, @YES);
+}
 @end
 
 // Mutate a different accessor backed by the same row as the accessor being observed
@@ -1473,8 +1667,8 @@ public:
 @end
 @implementation KVOMultipleAccessorsTests
 - (id)observableForObject:(id)value {
-    if (RLMObject *obj = RLMDynamicCast<RLMObject>(value)) {
-        RLMObject *copy = RLMCreateManagedAccessor(obj.objectSchema.accessorClass, obj.realm, obj->_info);
+    if (RLMObjectBase *obj = RLMDynamicCast<RLMObjectBase>(value)) {
+        RLMObject *copy = RLMCreateManagedAccessor(RLMObjectBaseObjectSchema(obj).accessorClass, obj->_info);
         copy->_row = obj->_row;
         return copy;
     }
@@ -1822,10 +2016,11 @@ public:
     [self.realm beginWriteTransaction];
     [self.secondaryRealm refresh];
 
-    if (RLMObject *obj = RLMDynamicCast<RLMObject>(value)) {
-        RLMObject *copy = RLMCreateManagedAccessor(obj.objectSchema.accessorClass, self.secondaryRealm,
-                                                   &self.secondaryRealm->_info[obj.objectSchema.className]);
-        copy->_row = (*copy->_info->table())[obj->_row.get_index()];
+    if (RLMObjectBase *obj = RLMDynamicCast<RLMObjectBase>(value)) {
+        RLMObjectSchema *objectSchema = RLMObjectBaseObjectSchema(obj);
+        RLMObject *copy = RLMCreateManagedAccessor(objectSchema.accessorClass,
+                                                   &self.secondaryRealm->_info[objectSchema.className]);
+        copy->_row = (*copy->_info->table()).get_object(obj->_row.get_key());
         return copy;
     }
     else if (RLMArray *array = RLMDynamicCast<RLMArray>(value)) {
@@ -1933,113 +2128,6 @@ public:
         deleteObject(8);
         AssertChanged(r, @NO, @YES);
     }
-}
-
-- (void)testInsertNewTables {
-    KVOObject *obj = [self createObject];
-
-    KVORecorder r1(self, obj, @"boolCol");
-    KVORecorder r2(self, obj, @"int32Col");
-
-    obj.boolCol = YES;
-
-    // Add tables before the observed one so that the observed one's index changes
-    realm::Group &group = self.realm->_realm->read_group();
-    realm::TableRef table1 = group.insert_table(5, "new table");
-    realm::TableRef table2 = group.insert_table(0, "new table 2");
-    table1->add_column(realm::type_Int, "col");
-    table2->add_column(realm::type_Int, "col");
-
-    obj.int32Col = 3;
-    AssertChanged(r1, @NO, @YES);
-    AssertChanged(r2, @2, @3);
-}
-
-- (void)testInsertNewColumns {
-    KVOObject *obj = [self createObject];
-
-    KVORecorder r1(self, obj, @"boolCol");
-    KVORecorder r2(self, obj, @"int32Col");
-    auto ndx = obj->_info->tableColumn(@"int32Col");
-
-    // Add a column before the observed one so that the observed one's index changes
-    obj.boolCol = YES;
-    auto& table = *obj->_info->table();
-    table.insert_column(0, realm::type_Binary, "new col");
-    table.insert_column(ndx, realm::type_Binary, "new col 2");
-    obj->_row.set_int(ndx + 2, 3); // can't use the accessor after a local schema change
-
-    AssertChanged(r1, @NO, @YES);
-    AssertChanged(r2, @2, @3);
-}
-
-- (void)testShiftObservedColumnBeforeChange {
-    KVOObject *obj = [self createObject];
-    auto ndx = obj->_info->tableColumn(@"boolCol");
-
-    KVORecorder r(self, obj, @"boolCol");
-    obj->_info->table()->insert_column(0, realm::type_Binary, "new col");
-    obj->_row.set_bool(ndx + 1, true); // can't use the accessor after a local schema change
-    AssertChanged(r, @NO, @YES);
-}
-
-- (void)testShiftObservedColumnAfterChange {
-    KVOObject *obj = [self createObject];
-
-    KVORecorder r(self, obj, @"boolCol");
-    obj.boolCol = YES;
-    obj->_info->table()->insert_column(0, realm::type_Binary, "new col");
-    AssertChanged(r, @NO, @YES);
-}
-
-- (void)testSwapRowsIsNotAChange {
-    KVOObject *obj = [self createObject];
-    [self createObject];
-
-    KVORecorder r(self, obj, @"boolCol");
-    obj->_info->table()->swap_rows(0, 1);
-    r.refresh();
-    XCTAssertTrue(r.empty());
-}
-
-- (void)testSwapRowsBeforeChange {
-    KVOObject *obj = [self createObject];
-    [self createObject];
-
-    KVORecorder r(self, obj, @"boolCol");
-    obj->_info->table()->swap_rows(0, 1);
-    obj.boolCol = YES;
-    AssertChanged(r, @NO, @YES);
-}
-
-- (void)testSwapRowsAfterChange {
-    KVOObject *obj = [self createObject];
-    [self createObject];
-
-    KVORecorder r(self, obj, @"boolCol");
-    obj.boolCol = YES;
-    obj->_info->table()->swap_rows(0, 1);
-    AssertChanged(r, @NO, @YES);
-}
-
-- (void)testSwapRowsBeforeArrayChange {
-    KVOObject *obj = [self createObject];
-    [self createObject];
-
-    KVORecorder r(self, obj, @"objectArray");
-    obj->_info->table()->swap_rows(0, 1);
-    [obj.objectArray addObject:obj];
-    AssertIndexChange(NSKeyValueChangeInsertion, [NSIndexSet indexSetWithIndex:0]);
-}
-
-- (void)testSwapRowsAfterArrayChange {
-    KVOObject *obj = [self createObject];
-    [self createObject];
-
-    KVORecorder r(self, obj, @"objectArray");
-    [obj.objectArray addObject:obj];
-    obj->_info->table()->swap_rows(0, 1);
-    AssertIndexChange(NSKeyValueChangeInsertion, [NSIndexSet indexSetWithIndex:0]);
 }
 @end
 

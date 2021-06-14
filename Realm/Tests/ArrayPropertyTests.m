@@ -287,6 +287,49 @@
     __unused ArrayPropertyObject *obj = [[ArrayPropertyObject alloc] initWithValue:@[@"n", @[], @[[[IntObject alloc] initWithValue:@[@1]]]]];
 }
 
+- (void)testUnmanagedComparision {
+    RLMRealm *realm = [self realmWithTestPath];
+
+    ArrayPropertyObject *array = [[ArrayPropertyObject alloc] init];
+    ArrayPropertyObject *array2 = [[ArrayPropertyObject alloc] init];
+
+    array.name = @"name";
+    array2.name = @"name2";
+    XCTAssertNotNil(array.array, @"RLMArray property should get created on access");
+    XCTAssertNotNil(array2.array, @"RLMArray property should get created on access");
+    XCTAssertTrue([array.array isEqual:array2.array], @"Empty arrays should be equal");
+
+    XCTAssertNil(array.array.firstObject, @"No objects added yet");
+    XCTAssertNil(array2.array.lastObject, @"No objects added yet");
+
+    StringObject *obj1 = [[StringObject alloc] init];
+    obj1.stringCol = @"a";
+    StringObject *obj2 = [[StringObject alloc] init];
+    obj2.stringCol = @"b";
+    StringObject *obj3 = [[StringObject alloc] init];
+    obj3.stringCol = @"c";
+    [array.array addObject:obj1];
+    [array.array addObject:obj2];
+    [array.array addObject:obj3];
+
+    [array2.array addObject:obj1];
+    [array2.array addObject:obj2];
+    [array2.array addObject:obj3];
+
+    XCTAssertTrue([array.array isEqual:array2.array], @"Arrays should be equal");
+    [array2.array removeLastObject];
+    XCTAssertFalse([array.array isEqual:array2.array], @"Arrays should not be equal");
+    [array2.array addObject:obj3];
+    XCTAssertTrue([array.array isEqual:array2.array], @"Arrays should be equal");
+
+    [realm beginWriteTransaction];
+    [realm addObject:array];
+    [realm commitWriteTransaction];
+
+    XCTAssertFalse([array.array isEqual:array2.array], @"Comparing a managed array to an unmanaged one should fail");
+    XCTAssertFalse([array2.array isEqual:array.array], @"Comparing a managed array to an unmanaged one should fail");
+}
+
 - (void)testUnmanagedPrimitive {
     AllPrimitiveArrays *obj = [[AllPrimitiveArrays alloc] init];
     XCTAssertTrue([obj.intObj isKindOfClass:[RLMArray class]]);
@@ -315,6 +358,7 @@
 
     [obj.intObj addObject:@5];
     XCTAssertEqualObjects(obj.intObj.firstObject, @5);
+    [realm cancelWriteTransaction];
 }
 
 - (void)testReplaceObjectAtIndexInUnmanagedArray {
@@ -1321,15 +1365,20 @@
     [(RLMNotificationToken *)token invalidate];
 }
 
-- (void)testAllMethodsCheckThread {
+static RLMArray<IntObject *> *managedTestArray() {
     RLMRealm *realm = [RLMRealm defaultRealm];
-    __block IntObject *io;
     __block RLMArray *array;
     [realm transactionWithBlock:^{
-        io = [IntObject createInDefaultRealmWithValue:@[@0]];
-        ArrayPropertyObject *obj = [ArrayPropertyObject createInDefaultRealmWithValue:@[@"", @[], @[io]]];
+        ArrayPropertyObject *obj = [ArrayPropertyObject createInDefaultRealmWithValue:@[@"", @[], @[@[@0], @[@1]]]];
         array = obj.intArray;
     }];
+    return array;
+}
+
+- (void)testAllMethodsCheckThread {
+    RLMArray<IntObject *> *array = managedTestArray();
+    IntObject *io = array.firstObject;
+    RLMRealm *realm = array.realm;
     [realm beginWriteTransaction];
 
     [self dispatchAsyncAndWait:^{
@@ -1359,20 +1408,15 @@
         RLMAssertThrowsWithReasonMatching(array[0] = io, @"thread");
         RLMAssertThrowsWithReasonMatching([array valueForKey:@"intCol"], @"thread");
         RLMAssertThrowsWithReasonMatching([array setValue:@1 forKey:@"intCol"], @"thread");
-        RLMAssertThrowsWithReasonMatching({for (__unused id obj in array);}, @"thread");
+        RLMAssertThrowsWithReasonMatching(({for (__unused id obj in array);}), @"thread");
     }];
     [realm cancelWriteTransaction];
 }
 
 - (void)testAllMethodsCheckForInvalidation {
-    RLMRealm *realm = [RLMRealm defaultRealm];
-    __block IntObject *io;
-    __block RLMArray *array;
-    [realm transactionWithBlock:^{
-        io = [IntObject createInDefaultRealmWithValue:@[@0]];
-        ArrayPropertyObject *obj = [ArrayPropertyObject createInDefaultRealmWithValue:@[@"", @[], @[io]]];
-        array = obj.intArray;
-    }];
+    RLMArray<IntObject *> *array = managedTestArray();
+    IntObject *io = array.firstObject;
+    RLMRealm *realm = array.realm;
 
     [realm beginWriteTransaction];
 
@@ -1407,7 +1451,7 @@
     XCTAssertNoThrow(array[0] = io);
     XCTAssertNoThrow([array valueForKey:@"intCol"]);
     XCTAssertNoThrow([array setValue:@1 forKey:@"intCol"]);
-    XCTAssertNoThrow({for (__unused id obj in array);});
+    XCTAssertNoThrow(({for (__unused id obj in array);}));
 
     [realm cancelWriteTransaction];
     [realm invalidate];
@@ -1444,20 +1488,14 @@
     RLMAssertThrowsWithReasonMatching(array[0] = io, @"invalidated");
     RLMAssertThrowsWithReasonMatching([array valueForKey:@"intCol"], @"invalidated");
     RLMAssertThrowsWithReasonMatching([array setValue:@1 forKey:@"intCol"], @"invalidated");
-    RLMAssertThrowsWithReasonMatching({for (__unused id obj in array);}, @"invalidated");
+    RLMAssertThrowsWithReasonMatching(({for (__unused id obj in array);}), @"invalidated");
 
     [realm cancelWriteTransaction];
 }
 
 - (void)testMutatingMethodsCheckForWriteTransaction {
-    RLMRealm *realm = [RLMRealm defaultRealm];
-    __block IntObject *io;
-    __block RLMArray *array;
-    [realm transactionWithBlock:^{
-        io = [IntObject createInDefaultRealmWithValue:@[@0]];
-        ArrayPropertyObject *obj = [ArrayPropertyObject createInDefaultRealmWithValue:@[@"", @[], @[io]]];
-        array = obj.intArray;
-    }];
+    RLMArray<IntObject *> *array = managedTestArray();
+    IntObject *io = array.firstObject;
 
     XCTAssertNoThrow([array objectClassName]);
     XCTAssertNoThrow([array realm]);
@@ -1477,7 +1515,7 @@
     XCTAssertNoThrow([array sortedResultsUsingDescriptors:@[[RLMSortDescriptor sortDescriptorWithKeyPath:@"intCol" ascending:YES]]]);
     XCTAssertNoThrow(array[0]);
     XCTAssertNoThrow([array valueForKey:@"intCol"]);
-    XCTAssertNoThrow({for (__unused id obj in array);});
+    XCTAssertNoThrow(({for (__unused id obj in array);}));
 
 
     RLMAssertThrowsWithReasonMatching([array addObject:io], @"write transaction");
@@ -1492,5 +1530,57 @@
 
     RLMAssertThrowsWithReasonMatching(array[0] = io, @"write transaction");
     RLMAssertThrowsWithReasonMatching([array setValue:@1 forKey:@"intCol"], @"write transaction");
+}
+
+- (void)testIsFrozen {
+    RLMArray *unfrozen = managedTestArray();
+    RLMArray *frozen = [unfrozen freeze];
+    XCTAssertFalse(unfrozen.isFrozen);
+    XCTAssertTrue(frozen.isFrozen);
+}
+
+- (void)testFreezingFrozenObjectReturnsSelf {
+    RLMArray *array = managedTestArray();
+    RLMArray *frozen = [array freeze];
+    XCTAssertNotEqual(array, frozen);
+    XCTAssertNotEqual(array.freeze, frozen);
+    XCTAssertEqual(frozen, frozen.freeze);
+}
+
+- (void)testFreezeFromWrongThread {
+    RLMArray *array = managedTestArray();
+    [self dispatchAsyncAndWait:^{
+        RLMAssertThrowsWithReason([array freeze],
+                                  @"Realm accessed from incorrect thread");
+    }];
+}
+
+- (void)testAccessFrozenFromDifferentThread {
+    RLMArray *frozen = [managedTestArray() freeze];
+    [self dispatchAsyncAndWait:^{
+        XCTAssertEqualObjects([frozen valueForKey:@"intCol"], (@[@0, @1]));
+    }];
+}
+
+- (void)testObserveFrozenArray {
+    RLMArray *frozen = [managedTestArray() freeze];
+    id block = ^(__unused BOOL deleted, __unused NSArray *changes, __unused NSError *error) {};
+    RLMAssertThrowsWithReason([frozen addNotificationBlock:block],
+                              @"Frozen Realms do not change and do not have change notifications.");
+}
+
+- (void)testQueryFrozenArray {
+    RLMArray *frozen = [managedTestArray() freeze];
+    XCTAssertEqualObjects([[frozen objectsWhere:@"intCol > 0"] valueForKey:@"intCol"], (@[@1]));
+}
+
+- (void)testFrozenArraysDoNotUpdate {
+    RLMArray *array = managedTestArray();
+    RLMArray *frozen = [array freeze];
+    XCTAssertEqual(frozen.count, 2);
+    [array.realm transactionWithBlock:^{
+        [array removeLastObject];
+    }];
+    XCTAssertEqual(frozen.count, 2);
 }
 @end

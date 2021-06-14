@@ -19,7 +19,9 @@
 import Cocoa
 import RealmSwift
 
-open class MyModel: Object {}
+open class MyModel: Object {
+    @objc dynamic var requiredProperty: String?
+}
 
 @NSApplicationMain
 class AppDelegate: NSObject, NSApplicationDelegate {
@@ -31,4 +33,3 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Insert code here to tear down your application
     }
 }
-

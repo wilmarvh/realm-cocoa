@@ -88,18 +88,23 @@ This simple app shows how to use an encrypted realm.
 
 This simple app demonstrates how to define models with inverse relationships using `linkingObjectsOfClass(_:forProperty:)`.
 
-## iOS (RubyMotion)
+### AppClip / AppClipParent
 
-***RubyMotion support is experimental. We make no claims towards stability and/or performance when using Realm in RubyMotion.***
+These two targets demonstrate how to use Realm to persist data between an App Clip and its parent.
 
-In the `ios/rubymotion` directory, you will find a Simple example demonstrating how to use Realm in a [RubyMotion](http://www.rubymotion.com) iOS app. Make sure to have run `sh build.sh ios-static` from the root of this repo before building and running this example. You can build and run this example by running `rake` from the `rubymotion/Simple` directory.
+**Note:** This is only supported for non-synchronized realms.
 
-To use Realm in your own RubyMotion iOS or OSX app, you must define your models in Objective-C and place them in the `models/` directory. Then in your `Rakefile`, define the following `vendor_project`s:
+#### Example Usage
 
-```ruby
-app.vendor_project 'path/to/Realm/Realm.framework', :static, :products => ['Realm'], :force_load => false
-app.vendor_project 'models', :static, :cflags => '-F /path/to/Realm/'
-```
+For the purpose of this example, the app clip invocation and parent application download is simulated by running each target.
+
+For more information on complete App Clip flow see: [Responding to invocations](https://developer.apple.com/documentation/app_clips/responding_to_invocations) and [Launch Experience](https://developer.apple.com/documentation/app_clips/testing_your_app_clip_s_launch_experience).
+
+![alt text](https://github.com/realm/realm-cocoa/blob/em/appclip_ex/examples/ios/swift/AppClip/appclip_ex.gif?raw=true)
+
+**Note:** When testing App Group Entitlements on MacOS (including the iOS simulator), `containerURL(forSecurityApplicationGroupIdentifier:)` will always return the shared directory URL, even when the group identifier is invalid.  Be sure to test on physical devices with non-simulated iOS for expected security behavior. See [Return Value](https://developer.apple.com/documentation/foundation/filemanager/1412643-containerurl).
+
+
 
 ## OSX (Objective-C)
 

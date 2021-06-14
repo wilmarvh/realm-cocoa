@@ -19,14 +19,6 @@
 import XCTest
 import RealmSwift
 
-#if !swift(>=4.1)
-extension Sequence {
-    func compactMap<ElementOfResult>(_ transform: (Self.Element) throws -> ElementOfResult?) rethrows -> [ElementOfResult] {
-        return try flatMap(transform)
-    }
-}
-#endif
-
 class ListTests: TestCase {
     var str1: SwiftStringObject?
     var str2: SwiftStringObject?
@@ -38,6 +30,10 @@ class ListTests: TestCase {
     }
 
     func createArrayWithLinks() -> SwiftListOfSwiftObject {
+        fatalError("abstract")
+    }
+
+    func createEmbeddedArray() -> List<EmbeddedTreeObject1> {
         fatalError("abstract")
     }
 
@@ -75,7 +71,6 @@ class ListTests: TestCase {
         super.tearDown()
     }
 
-#if swift(>=4)
     override class var defaultTestSuite: XCTestSuite {
         // Don't run tests for the base class
         if isEqual(ListTests.self) {
@@ -83,15 +78,6 @@ class ListTests: TestCase {
         }
         return super.defaultTestSuite
     }
-#else
-    override class func defaultTestSuite() -> XCTestSuite {
-        // Don't run tests for the base class
-        if isEqual(ListTests.self) {
-            return XCTestSuite(name: "empty")
-        }
-        return super.defaultTestSuite()
-    }
-#endif
 
     func testPrimitive() {
         let obj = SwiftListObject()
@@ -123,6 +109,8 @@ class ListTests: TestCase {
         XCTAssertFalse(obj.string.contains("foobar"))
         XCTAssertFalse(obj.data.contains(Data()))
         XCTAssertFalse(obj.date.contains(Date()))
+        XCTAssertFalse(obj.decimal.contains(Decimal128()))
+        XCTAssertFalse(obj.objectId.contains(ObjectId()))
 
         XCTAssertFalse(obj.intOpt.contains { $0 == nil })
         XCTAssertFalse(obj.int8Opt.contains { $0 == nil })
@@ -134,6 +122,8 @@ class ListTests: TestCase {
         XCTAssertFalse(obj.stringOpt.contains { $0 == nil })
         XCTAssertFalse(obj.dataOpt.contains { $0 == nil })
         XCTAssertFalse(obj.dateOpt.contains { $0 == nil })
+        XCTAssertFalse(obj.decimalOpt.contains { $0 == nil })
+        XCTAssertFalse(obj.objectIdOpt.contains { $0 == nil })
     }
 
     func testInvalidated() {
@@ -214,8 +204,8 @@ class ListTests: TestCase {
         assertEqual(str2, array[0])
         assertEqual(str1, array[1])
 
-        assertThrows(_ = array.insert(str2, at: 200))
-        assertThrows(_ = array.insert(str2, at: -200))
+        assertThrows(array.insert(str2, at: 200))
+        assertThrows(array.insert(str2, at: -200))
     }
 
     func testRemoveAtIndex() {
@@ -309,6 +299,54 @@ class ListTests: TestCase {
 
         assertThrows(array.move(from: 0, to: 2))
         assertThrows(array.move(from: 2, to: 0))
+    }
+
+    func testMoveFromOffsets() {
+        guard let array = array, let str1 = str1, let str2 = str2 else {
+            fatalError("Test precondition failure")
+        }
+        let str3 = SwiftStringObject(value: ["3"])
+
+        array.append(objectsIn: [str1, str2, str3])
+
+        array.move(fromOffsets: IndexSet([1]), toOffset: 0)
+        // [2, 1, 3]
+        XCTAssertEqual(array[0].stringCol, "2")
+        XCTAssertEqual(array[1].stringCol, "1")
+        XCTAssertEqual(array[2].stringCol, "3")
+
+        array.move(fromOffsets: IndexSet([0]), toOffset: 3)
+        // [1, 3, 2]
+        XCTAssertEqual(array[0].stringCol, "1")
+        XCTAssertEqual(array[1].stringCol, "3")
+        XCTAssertEqual(array[2].stringCol, "2")
+
+        array.move(fromOffsets: IndexSet([0]), toOffset: 0)
+        // [1, 3, 2]
+        XCTAssertEqual(array[0].stringCol, "1")
+        XCTAssertEqual(array[1].stringCol, "3")
+        XCTAssertEqual(array[2].stringCol, "2")
+
+        array.move(fromOffsets: IndexSet([2]), toOffset: 1)
+        // [1, 2, 3]
+        XCTAssertEqual(array[0].stringCol, "1")
+        XCTAssertEqual(array[1].stringCol, "2")
+        XCTAssertEqual(array[2].stringCol, "3")
+
+        assertThrows(array.move(fromOffsets: IndexSet([0]), toOffset: 4))
+        assertThrows(array.move(fromOffsets: IndexSet([4]), toOffset: 0))
+
+        array.move(fromOffsets: IndexSet([]), toOffset: 1)
+        // [1, 2, 3]
+        XCTAssertEqual(array[0].stringCol, "1")
+        XCTAssertEqual(array[1].stringCol, "2")
+        XCTAssertEqual(array[2].stringCol, "3")
+
+        array.move(fromOffsets: IndexSet([0, 2]), toOffset: 1)
+        // [2, 3, 1]
+        XCTAssertEqual(array[0].stringCol, "2")
+        XCTAssertEqual(array[1].stringCol, "3")
+        XCTAssertEqual(array[2].stringCol, "1")
     }
 
     func testReplaceRange() {
@@ -420,196 +458,180 @@ class ListTests: TestCase {
     }
 
     func testValueForKey() {
-        do {
-            let realm = try! Realm()
-            try! realm.write {
-                for value in [1, 2] {
-                    let listObject = SwiftListOfSwiftObject()
-                    let object = SwiftObject()
-                    object.intCol = value
-                    object.doubleCol = Double(value)
-                    object.stringCol = String(value)
-                    listObject.array.append(object)
-                    realm.add(listObject)
-                }
-            }
-
-            do {
-                let objects = realm.objects(SwiftListOfSwiftObject.self)
-
-                let properties: [Int] = Array(objects.flatMap { $0.array.map { $0.intCol }})
-                let listsOfObjects = objects.value(forKeyPath: "array") as! [List<SwiftObject>]
-                let kvcProperties: [Int] = Array(listsOfObjects.flatMap { $0.map { $0.intCol }})
-
-                XCTAssertEqual(properties, kvcProperties)
-            }
-            do {
-                let objects = realm.objects(SwiftListOfSwiftObject.self)
-
-                let properties = Array(objects.flatMap { $0.array.map { $0.doubleCol }})
-                let listsOfObjects = objects.value(forKeyPath: "array") as! [List<SwiftObject>]
-                let kvcProperties = Array(listsOfObjects.flatMap { $0.map { $0.doubleCol }})
-
-                XCTAssertEqual(properties, kvcProperties)
-            }
-            do {
-                let objects = realm.objects(SwiftListOfSwiftObject.self)
-
-                let properties = Array(objects.flatMap { $0.array.map { $0.stringCol }})
-                let listsOfObjects = objects.value(forKeyPath: "array") as! [List<SwiftObject>]
-                let kvcProperties = Array(listsOfObjects.flatMap { $0.map { $0.stringCol }})
-
-                XCTAssertEqual(properties, kvcProperties)
-            }
-
-            do {
-                let realm = try! Realm()
-                do {
-                    let objects = realm.objects(SwiftObject.self)
-
-                    let properties = Array(objects.compactMap { $0.intCol })
-                    let listsOfObjects = objects.value(forKeyPath: "intCol") as! [Int]
-                    let kvcProperties = Array(listsOfObjects.compactMap { $0 })
-
-                    XCTAssertEqual(properties, kvcProperties)
-                }
-                do {
-                    let objects = realm.objects(SwiftObject.self)
-
-                    let properties = Array(objects.compactMap { $0.doubleCol })
-                    let listsOfObjects = objects.value(forKeyPath: "doubleCol") as! [Double]
-                    let kvcProperties = Array(listsOfObjects.compactMap { $0 })
-
-                    XCTAssertEqual(properties, kvcProperties)
-                }
-                do {
-                    let objects = realm.objects(SwiftObject.self)
-
-                    let properties = Array(objects.compactMap { $0.stringCol })
-                    let listsOfObjects = objects.value(forKeyPath: "stringCol") as! [String]
-                    let kvcProperties = Array(listsOfObjects.compactMap { $0 })
-
-                    XCTAssertEqual(properties, kvcProperties)
-                }
+        let realm = try! Realm()
+        try! realm.write {
+            for value in [1, 2] {
+                let listObject = SwiftListOfSwiftObject()
+                let object = SwiftObject()
+                object.intCol = value
+                object.doubleCol = Double(value)
+                object.stringCol = String(value)
+                object.decimalCol = Decimal128(number: value as NSNumber)
+                object.objectIdCol = try! ObjectId(string: String(repeating: String(value), count: 24))
+                listObject.array.append(object)
+                realm.add(listObject)
             }
         }
 
-        do {
-            let realm = try! Realm()
-            try! realm.write {
-                for value in [1, 2] {
-                    let listObject = SwiftListOfSwiftOptionalObject()
-                    let object = SwiftOptionalObject()
-                    object.optIntCol.value = value
-                    object.optInt8Col.value = Int8(value)
-                    object.optDoubleCol.value = Double(value)
-                    object.optStringCol = String(value)
-                    object.optNSStringCol = NSString(format: "%d", value)
-                    listObject.array.append(object)
-                    realm.add(listObject)
-                }
-            }
+        let listObjects = realm.objects(SwiftListOfSwiftObject.self)
+        let listsOfObjects = listObjects.value(forKeyPath: "array") as! [List<SwiftObject>]
+        let objects = realm.objects(SwiftObject.self)
 
-            do {
-                let objects = realm.objects(SwiftListOfSwiftOptionalObject.self)
+        func testProperty<T: Equatable>(line: UInt = #line, fn: @escaping (SwiftObject) -> T) {
+            let properties: [T] = Array(listObjects.flatMap { $0.array.map(fn) })
+            let kvcProperties: [T] = Array(listsOfObjects.flatMap { $0.map(fn) })
+            XCTAssertEqual(properties, kvcProperties, line: line)
+        }
+        func testProperty<T: Equatable>(_ name: String, line: UInt = #line, fn: @escaping (SwiftObject) -> T) {
+            let properties = Array(objects.compactMap(fn))
+            let listsOfObjects = objects.value(forKeyPath: name) as! [T]
+            let kvcProperties = Array(listsOfObjects.compactMap { $0 })
 
-                let properties = Array(objects.flatMap { $0.array.compactMap { $0.optIntCol.value }})
-                let listsOfObjects = objects.value(forKeyPath: "array") as! [List<SwiftOptionalObject>]
-                let kvcProperties = Array(listsOfObjects.flatMap { $0.compactMap { $0.optIntCol.value }})
+            XCTAssertEqual(properties, kvcProperties, line: line)
+        }
 
-                XCTAssertEqual(properties, kvcProperties)
-            }
-            do {
-                let objects = realm.objects(SwiftListOfSwiftOptionalObject.self)
+        testProperty { $0.intCol }
+        testProperty { $0.doubleCol }
+        testProperty { $0.stringCol }
+        testProperty { $0.decimalCol }
+        testProperty { $0.objectIdCol }
 
-                let properties = Array(objects.flatMap { $0.array.compactMap { $0.optInt8Col.value }})
-                let listsOfObjects = objects.value(forKeyPath: "array") as! [List<SwiftOptionalObject>]
-                let kvcProperties = Array(listsOfObjects.flatMap { $0.compactMap { $0.optInt8Col.value }})
+        testProperty("intCol") { $0.intCol }
+        testProperty("doubleCol") { $0.doubleCol }
+        testProperty("stringCol") { $0.stringCol }
+        testProperty("decimalCol") { $0.decimalCol }
+        testProperty("objectIdCol") { $0.objectIdCol }
+    }
 
-                XCTAssertEqual(properties, kvcProperties)
-            }
-            do {
-                let objects = realm.objects(SwiftListOfSwiftOptionalObject.self)
-
-                let properties = Array(objects.flatMap { $0.array.compactMap { $0.optDoubleCol.value }})
-                let listsOfObjects = objects.value(forKeyPath: "array") as! [List<SwiftOptionalObject>]
-                let kvcProperties = Array(listsOfObjects.flatMap { $0.compactMap { $0.optDoubleCol.value }})
-
-                XCTAssertEqual(properties, kvcProperties)
-            }
-            do {
-                let objects = realm.objects(SwiftListOfSwiftOptionalObject.self)
-
-                let properties = Array(objects.flatMap { $0.array.compactMap { $0.optStringCol }})
-                let listsOfObjects = objects.value(forKeyPath: "array") as! [List<SwiftOptionalObject>]
-                let kvcProperties = Array(listsOfObjects.flatMap { $0.compactMap { $0.optStringCol }})
-
-                XCTAssertEqual(properties, kvcProperties)
-            }
-            do {
-                let objects = realm.objects(SwiftListOfSwiftOptionalObject.self)
-
-                let properties = Array(objects.flatMap { $0.array.compactMap { $0.optNSStringCol }})
-                let listsOfObjects = objects.value(forKeyPath: "array") as! [List<SwiftOptionalObject>]
-                let kvcProperties = Array(listsOfObjects.flatMap { $0.compactMap { $0.optNSStringCol }})
-
-                XCTAssertEqual(properties, kvcProperties)
-            }
-
-            do {
-                let objects = realm.objects(SwiftOptionalObject.self)
-
-                let properties = Array(objects.compactMap { $0.optIntCol.value })
-                let listsOfObjects = objects.value(forKeyPath: "optIntCol") as! [Int]
-                let kvcProperties = Array(listsOfObjects.compactMap { $0 })
-
-                XCTAssertEqual(properties, kvcProperties)
-            }
-            do {
-                let objects = realm.objects(SwiftOptionalObject.self)
-
-                let properties = Array(objects.compactMap { $0.optInt8Col.value })
-#if swift(>=3.1)
-                let listsOfObjects = objects.value(forKeyPath: "optInt8Col") as! [Int8]
-#else
-                let listsOfObjects = (objects.value(forKeyPath: "optInt8Col") as! [NSNumber]).map { $0.int8Value }
-#endif
-                let kvcProperties = Array(listsOfObjects.compactMap { $0 })
-
-                XCTAssertEqual(properties, kvcProperties)
-            }
-            do {
-                let objects = realm.objects(SwiftOptionalObject.self)
-
-                let properties = Array(objects.compactMap { $0.optDoubleCol.value })
-                let listsOfObjects = objects.value(forKeyPath: "optDoubleCol") as! [Double]
-                let kvcProperties = Array(listsOfObjects.compactMap { $0 })
-
-                XCTAssertEqual(properties, kvcProperties)
-            }
-#if swift(>=4)
-            // this test crashes xcode 9 beta 1's compiler
-#else
-            do {
-                let objects = realm.objects(SwiftOptionalObject.self)
-
-                let properties = Array(objects.compactMap { $0.optStringCol })
-                let listsOfObjects = objects.value(forKeyPath: "optStringCol") as! [String]
-                let kvcProperties = Array(listsOfObjects.compactMap { $0 })
-
-                XCTAssertEqual(properties, kvcProperties)
-            }
-#endif
-            do {
-                let objects = realm.objects(SwiftOptionalObject.self)
-
-                let properties = Array(objects.compactMap { $0.optNSStringCol })
-                let listsOfObjects = objects.value(forKeyPath: "optNSStringCol") as! [NSString]
-                let kvcProperties = Array(listsOfObjects.compactMap { $0 })
-
-                XCTAssertEqual(properties, kvcProperties)
+    func testValueForKeyOptional() {
+        let realm = try! Realm()
+        try! realm.write {
+            for value in [1, 2] {
+                let listObject = SwiftListOfSwiftOptionalObject()
+                let object = SwiftOptionalObject()
+                object.optIntCol.value = value
+                object.optInt8Col.value = Int8(value)
+                object.optDoubleCol.value = Double(value)
+                object.optStringCol = String(value)
+                object.optNSStringCol = NSString(format: "%d", value)
+                object.optDecimalCol = Decimal128(number: value as NSNumber)
+                object.optObjectIdCol = try! ObjectId(string: String(repeating: String(value), count: 24))
+                listObject.array.append(object)
+                realm.add(listObject)
             }
         }
+
+        let listObjects = realm.objects(SwiftListOfSwiftOptionalObject.self)
+        let listsOfObjects = listObjects.value(forKeyPath: "array") as! [List<SwiftOptionalObject>]
+        let objects = realm.objects(SwiftOptionalObject.self)
+
+        func testProperty<T: Equatable>(line: UInt = #line, fn: @escaping (SwiftOptionalObject) -> T) {
+            let properties: [T] = Array(listObjects.flatMap { $0.array.map(fn) })
+            let kvcProperties: [T] = Array(listsOfObjects.flatMap { $0.map(fn) })
+            XCTAssertEqual(properties, kvcProperties, line: line)
+        }
+        func testProperty<T: Equatable>(_ name: String, line: UInt = #line, fn: @escaping (SwiftOptionalObject) -> T) {
+            let properties = Array(objects.compactMap(fn))
+            let listsOfObjects = objects.value(forKeyPath: name) as! [T]
+            let kvcProperties = Array(listsOfObjects.compactMap { $0 })
+
+            XCTAssertEqual(properties, kvcProperties, line: line)
+        }
+
+        testProperty { $0.optIntCol.value }
+        testProperty { $0.optInt8Col.value }
+        testProperty { $0.optDoubleCol.value }
+        testProperty { $0.optStringCol }
+        testProperty { $0.optNSStringCol }
+        testProperty { $0.optDecimalCol }
+        testProperty { $0.optObjectCol }
+
+        testProperty("optIntCol") { $0.optIntCol.value }
+        testProperty("optInt8Col") { $0.optInt8Col.value }
+        testProperty("optDoubleCol") { $0.optDoubleCol.value }
+        testProperty("optStringCol") { $0.optStringCol }
+        testProperty("optNSStringCol") { $0.optNSStringCol }
+        testProperty("optDecimalCol") { $0.optDecimalCol }
+        testProperty("optObjectCol") { $0.optObjectCol }
+    }
+
+    func testAppendEmbedded() {
+        let list = createEmbeddedArray()
+
+        list.realm?.beginWrite()
+        for i in 0..<10 {
+            list.append(EmbeddedTreeObject1(value: [i]))
+        }
+        XCTAssertEqual(10, list.count)
+
+        for (i, object) in list.enumerated() {
+            XCTAssertEqual(i, object.value)
+            XCTAssertEqual(list.realm, object.realm)
+        }
+
+        if list.realm != nil {
+            assertThrows(list.append(list[0]),
+                         reason: "Cannot add an existing managed embedded object to a List.")
+        }
+
+        list.realm?.cancelWrite()
+    }
+
+    func testSetEmbedded() {
+        let list = createEmbeddedArray()
+
+        list.realm?.beginWrite()
+        list.append(EmbeddedTreeObject1(value: [0]))
+
+        let oldObj = list[0]
+        let obj = EmbeddedTreeObject1(value: [1])
+        list[0] = obj
+        XCTAssertTrue(list[0].isSameObject(as: obj))
+        XCTAssertEqual(obj.value, 1)
+        XCTAssertEqual(obj.realm, list.realm)
+
+        if list.realm != nil {
+            XCTAssertTrue(oldObj.isInvalidated)
+            assertThrows(list[0] = obj,
+                         reason: "Cannot add an existing managed embedded object to a List.")
+        }
+
+        list.realm?.cancelWrite()
+    }
+
+    func testUnmanagedListComparison() {
+        let obj = SwiftIntObject()
+        obj.intCol = 5
+        let obj2 = SwiftIntObject()
+        obj2.intCol = 6
+        let obj3 = SwiftIntObject()
+        obj3.intCol = 8
+
+        let objects = [obj, obj2, obj3]
+        let objects2 = [obj, obj2]
+
+        let list1 = List<SwiftIntObject>()
+        let list2 = List<SwiftIntObject>()
+        XCTAssertEqual(list1, list2, "Empty instances should be equal by `==` operator")
+
+        list1.append(objectsIn: objects)
+        list2.append(objectsIn: objects)
+
+        let list3 = List<SwiftIntObject>()
+        list3.append(objectsIn: objects2)
+
+        XCTAssertTrue(list1 !== list2, "instances should not be identical")
+
+        XCTAssertEqual(list1, list2, "instances should be equal by `==` operator")
+        XCTAssertNotEqual(list1, list3, "instances should be equal by `==` operator")
+
+        XCTAssertTrue(list1.isEqual(list2), "instances should be equal by `isEqual` method")
+        XCTAssertTrue(!list1.isEqual(list3), "instances should be equal by `isEqual` method")
+
+        XCTAssertEqual(Array(list1), Array(list2), "instances converted to Swift.Array should be equal")
+        XCTAssertNotEqual(Array(list1), Array(list3), "instances converted to Swift.Array should be equal")
+        list3.append(obj3)
+        XCTAssertEqual(list1, list3, "instances should be equal by `==` operator")
     }
 }
 
@@ -624,6 +646,10 @@ class ListStandaloneTests: ListTests {
         let array = SwiftListOfSwiftObject()
         XCTAssertNil(array.realm)
         return array
+    }
+
+    override func createEmbeddedArray() -> List<EmbeddedTreeObject1> {
+        return List<EmbeddedTreeObject1>()
     }
 }
 
@@ -646,6 +672,14 @@ class ListNewlyAddedTests: ListTests {
         XCTAssertNotNil(array.realm)
         return array
     }
+
+    override func createEmbeddedArray() -> List<EmbeddedTreeObject1> {
+        let parent = EmbeddedParentObject()
+        let list = parent.array
+        let realm = try! Realm()
+        try! realm.write { realm.add(parent) }
+        return list
+    }
 }
 
 class ListNewlyCreatedTests: ListTests {
@@ -667,6 +701,13 @@ class ListNewlyCreatedTests: ListTests {
 
         XCTAssertNotNil(array.realm)
         return array
+    }
+
+    override func createEmbeddedArray() -> List<EmbeddedTreeObject1> {
+        let realm = try! Realm()
+        return try! realm.write {
+            realm.create(EmbeddedParentObject.self, value: []).array
+        }
     }
 }
 
@@ -692,10 +733,18 @@ class ListRetrievedTests: ListTests {
         XCTAssertNotNil(array.realm)
         return array
     }
+
+    override func createEmbeddedArray() -> List<EmbeddedTreeObject1> {
+        let realm = try! Realm()
+        try! realm.write {
+            realm.create(EmbeddedParentObject.self, value: [])
+        }
+        return realm.objects(EmbeddedParentObject.self).first!.array
+    }
 }
 
 /// Ensure the range replaceable collection methods behave correctly when emulated for Swift 4 and later.
-class ListRRCMethodsTests: XCTestCase {
+class ListRRCMethodsTests: TestCase {
     private func compare(array: [Int], with list: List<SwiftIntObject>) {
         guard array.count == list.count else {
             XCTFail("Array and list have different sizes (\(array.count) and \(list.count), respectively).")
@@ -731,9 +780,10 @@ class ListRRCMethodsTests: XCTestCase {
         array = makeArray(from: list)
     }
 
-#if swift(>=4.0)
     func testSubscript() {
+        list[0] = SwiftIntObject(value: [5])
         list[1..<4] = createListObject([10, 11, 12]).intArray[0..<2]
+        array[0] = 5
         array[1..<4] = [10, 11]
         compare(array: array, with: list)
     }
@@ -749,7 +799,6 @@ class ListRRCMethodsTests: XCTestCase {
         list.removeSubrange(list.indices)
         XCTAssertTrue(list.isEmpty)
     }
-#endif
 
     func testRemoveFirst() {
         list.removeFirst()
@@ -761,6 +810,11 @@ class ListRRCMethodsTests: XCTestCase {
         list.removeFirst(3)
         array.removeFirst(3)
         compare(array: array, with: list)
+    }
+
+    func testRemoveFirstInvalid() {
+        assertThrows(list.removeFirst(-1))
+        assertThrows(list.removeFirst(100))
     }
 
     func testRemoveLastFew() {

@@ -32,18 +32,46 @@ class SwiftIntObject: Object {
     @objc dynamic var intCol = 0
 }
 
+class SwiftInt8Object: Object {
+    @objc dynamic var int8Col = 0
+}
+
+class SwiftInt16Object: Object {
+    @objc dynamic var int16Col = 0
+}
+
+class SwiftInt32Object: Object {
+    @objc dynamic var int32Col = 0
+}
+
+class SwiftInt64Object: Object {
+    @objc dynamic var int64Col = 0
+}
+
 class SwiftLongObject: Object {
     @objc dynamic var longCol: Int64 = 0
+}
+
+@objc enum IntEnum: Int, RealmEnum {
+    case value1 = 1
+    case value2 = 3
 }
 
 class SwiftObject: Object {
     @objc dynamic var boolCol = false
     @objc dynamic var intCol = 123
+    @objc dynamic var int8Col: Int8 = 123
+    @objc dynamic var int16Col: Int16 = 123
+    @objc dynamic var int32Col: Int32 = 123
+    @objc dynamic var int64Col: Int64 = 123
+    @objc dynamic var intEnumCol = IntEnum.value1
     @objc dynamic var floatCol = 1.23 as Float
     @objc dynamic var doubleCol = 12.3
     @objc dynamic var stringCol = "a"
     @objc dynamic var binaryCol = "a".data(using: String.Encoding.utf8)!
     @objc dynamic var dateCol = Date(timeIntervalSince1970: 1)
+    @objc dynamic var decimalCol = Decimal128("123e4")
+    @objc dynamic var objectIdCol = ObjectId("1234567890ab1234567890ab")
     @objc dynamic var objectCol: SwiftBoolObject? = SwiftBoolObject()
     let arrayCol = List<SwiftBoolObject>()
 
@@ -51,11 +79,17 @@ class SwiftObject: Object {
         return  [
             "boolCol": false,
             "intCol": 123,
+            "int8Col": 123 as Int8,
+            "int16Col": 123 as Int16,
+            "int32Col": 123 as Int32,
+            "int64Col": 123 as Int64,
             "floatCol": 1.23 as Float,
             "doubleCol": 12.3,
             "stringCol": "a",
             "binaryCol": "a".data(using: String.Encoding.utf8)!,
             "dateCol": Date(timeIntervalSince1970: 1),
+            "decimalCol": Decimal128("123e4"),
+            "objectIdCol": ObjectId("1234567890ab1234567890ab"),
             "objectCol": [false],
             "arrayCol": []
         ]
@@ -67,6 +101,8 @@ class SwiftOptionalObject: Object {
     @objc dynamic var optStringCol: String?
     @objc dynamic var optBinaryCol: Data?
     @objc dynamic var optDateCol: Date?
+    @objc dynamic var optDecimalCol: Decimal128?
+    @objc dynamic var optObjectIdCol: ObjectId?
     let optIntCol = RealmOptional<Int>()
     let optInt8Col = RealmOptional<Int8>()
     let optInt16Col = RealmOptional<Int16>()
@@ -75,6 +111,7 @@ class SwiftOptionalObject: Object {
     let optFloatCol = RealmOptional<Float>()
     let optDoubleCol = RealmOptional<Double>()
     let optBoolCol = RealmOptional<Bool>()
+    let optEnumCol = RealmOptional<IntEnum>()
     @objc dynamic var optObjectCol: SwiftBoolObject?
 }
 
@@ -95,6 +132,8 @@ class SwiftListObject: Object {
     let string = List<String>()
     let data = List<Data>()
     let date = List<Date>()
+    let decimal = List<Decimal128>()
+    let objectId = List<ObjectId>()
 
     let intOpt = List<Int?>()
     let int8Opt = List<Int8?>()
@@ -106,6 +145,8 @@ class SwiftListObject: Object {
     let stringOpt = List<String?>()
     let dataOpt = List<Data?>()
     let dateOpt = List<Date?>()
+    let decimalOpt = List<Decimal128?>()
+    let objectIdOpt = List<ObjectId?>()
 }
 
 class SwiftImplicitlyUnwrappedOptionalObject: Object {
@@ -113,6 +154,8 @@ class SwiftImplicitlyUnwrappedOptionalObject: Object {
     @objc dynamic var optStringCol: String!
     @objc dynamic var optBinaryCol: Data!
     @objc dynamic var optDateCol: Date!
+    @objc dynamic var optDecimalCol: Decimal128!
+    @objc dynamic var optObjectIdCol: ObjectId!
     @objc dynamic var optObjectCol: SwiftBoolObject!
 }
 
@@ -121,6 +164,8 @@ class SwiftOptionalDefaultValuesObject: Object {
     @objc dynamic var optStringCol: String? = "B"
     @objc dynamic var optBinaryCol: Data? = "C".data(using: String.Encoding.utf8)! as Data
     @objc dynamic var optDateCol: Date? = Date(timeIntervalSince1970: 10)
+    @objc dynamic var optDecimalCol: Decimal128? = "123"
+    @objc dynamic var optObjectIdCol: ObjectId? = ObjectId("1234567890ab1234567890ab")
     let optIntCol = RealmOptional<Int>(1)
     let optInt8Col = RealmOptional<Int8>(1)
     let optInt16Col = RealmOptional<Int16>(1)
@@ -138,11 +183,13 @@ class SwiftOptionalDefaultValuesObject: Object {
             "optStringCol": "B",
             "optBinaryCol": "C".data(using: String.Encoding.utf8)!,
             "optDateCol": Date(timeIntervalSince1970: 10),
+            "optDecimalCol": Decimal128("123"),
+            "optObjectIdCol": ObjectId("1234567890ab1234567890ab"),
             "optIntCol": 1,
-            "optInt8Col": 1,
-            "optInt16Col": 1,
-            "optInt32Col": 1,
-            "optInt64Col": 1,
+            "optInt8Col": Int8(1),
+            "optInt16Col": Int16(1),
+            "optInt32Col": Int32(1),
+            "optInt64Col": Int64(1),
             "optFloatCol": 2.2 as Float,
             "optDoubleCol": 3.3,
             "optBoolCol": true
@@ -157,6 +204,8 @@ class SwiftOptionalIgnoredPropertiesObject: Object {
     @objc dynamic var optStringCol: String? = "B"
     @objc dynamic var optBinaryCol: Data? = "C".data(using: String.Encoding.utf8)! as Data
     @objc dynamic var optDateCol: Date? = Date(timeIntervalSince1970: 10)
+    @objc dynamic var optDecimalCol: Decimal128? = "123"
+    @objc dynamic var optObjectIdCol: ObjectId? = ObjectId("1234567890ab1234567890ab")
     @objc dynamic var optObjectCol: SwiftBoolObject? = SwiftBoolObject(value: [true])
 
     override class func ignoredProperties() -> [String] {
@@ -165,12 +214,12 @@ class SwiftOptionalIgnoredPropertiesObject: Object {
             "optStringCol",
             "optBinaryCol",
             "optDateCol",
+            "optDecimalCol",
+            "optObjectIdCol",
             "optObjectCol"
         ]
     }
 }
-
-
 
 class SwiftDogObject: Object {
     @objc dynamic var dogName = ""
@@ -184,8 +233,13 @@ class SwiftOwnerObject: Object {
 
 class SwiftAggregateObject: Object {
     @objc dynamic var intCol = 0
+    @objc dynamic var int8Col: Int8 = 0
+    @objc dynamic var int16Col: Int16 = 0
+    @objc dynamic var int32Col: Int32 = 0
+    @objc dynamic var int64Col: Int64 = 0
     @objc dynamic var floatCol = 0 as Float
     @objc dynamic var doubleCol = 0.0
+    @objc dynamic var decimalCol = 0.0 as Decimal128
     @objc dynamic var boolCol = false
     @objc dynamic var dateCol = Date()
     @objc dynamic var trueCol = true
@@ -434,19 +488,9 @@ class SwiftCustomInitializerObject: Object {
         super.init()
     }
 
-    required init() {
+    required override init() {
         stringCol = ""
         super.init()
-    }
-
-    required init(realm: RLMRealm, schema: RLMObjectSchema) {
-        stringCol = ""
-        super.init(realm: realm, schema: schema)
-    }
-
-    required init(value: Any, schema: RLMSchema) {
-        stringCol = ""
-        super.init(value: value, schema: schema)
     }
 }
 
@@ -463,7 +507,6 @@ class SwiftObjectiveCTypesObject: Object {
     @objc dynamic var stringCol: NSString?
     @objc dynamic var dateCol: NSDate?
     @objc dynamic var dataCol: NSData?
-    @objc dynamic var numCol: NSNumber? = 0
 }
 
 class SwiftComputedPropertyNotIgnoredObject: Object {
@@ -594,4 +637,48 @@ class LinkToSwiftRenamedProperties2: Object {
     override class func _realmColumnNames() -> [String: String] {
         return ["linkC": "link 1", "linkD": "link 2", "array2": "array"]
     }
+}
+
+class EmbeddedParentObject: Object {
+    @objc dynamic var object: EmbeddedTreeObject1?
+    let array = List<EmbeddedTreeObject1>()
+}
+
+class EmbeddedPrimaryParentObject: Object {
+    @objc dynamic var pk: Int = 0
+    @objc dynamic var object: EmbeddedTreeObject1?
+    let array = List<EmbeddedTreeObject1>()
+
+    override class func primaryKey() -> String? {
+        return "pk"
+    }
+}
+
+protocol EmbeddedTreeObject: EmbeddedObject {
+    var value: Int { get set }
+}
+
+class EmbeddedTreeObject1: EmbeddedObject, EmbeddedTreeObject {
+    @objc dynamic var value = 0
+    @objc dynamic var child: EmbeddedTreeObject2?
+    let children = List<EmbeddedTreeObject2>()
+
+    let parent1 = LinkingObjects(fromType: EmbeddedParentObject.self, property: "object")
+    let parent2 = LinkingObjects(fromType: EmbeddedParentObject.self, property: "array")
+}
+
+class EmbeddedTreeObject2: EmbeddedObject, EmbeddedTreeObject {
+    @objc dynamic var value = 0
+    @objc dynamic var child: EmbeddedTreeObject3?
+    let children = List<EmbeddedTreeObject3>()
+
+    let parent3 = LinkingObjects(fromType: EmbeddedTreeObject1.self, property: "child")
+    let parent4 = LinkingObjects(fromType: EmbeddedTreeObject1.self, property: "children")
+}
+
+class EmbeddedTreeObject3: EmbeddedObject, EmbeddedTreeObject {
+    @objc dynamic var value = 0
+
+    let parent3 = LinkingObjects(fromType: EmbeddedTreeObject2.self, property: "child")
+    let parent4 = LinkingObjects(fromType: EmbeddedTreeObject2.self, property: "children")
 }

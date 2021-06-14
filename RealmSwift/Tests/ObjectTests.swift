@@ -39,9 +39,7 @@ class SwiftDynamicDefaultObject: Object {
 }
 
 class ObjectTests: TestCase {
-
     // init() Tests are in ObjectCreationTests.swift
-
     // init(value:) tests are in ObjectCreationTests.swift
 
     func testRealm() {
@@ -72,7 +70,9 @@ class ObjectTests: TestCase {
         XCTAssert(schema.properties as AnyObject is [Property])
         XCTAssertEqual(schema.className, "SwiftObject")
         XCTAssertEqual(schema.properties.map { $0.name },
-            ["boolCol", "intCol", "floatCol", "doubleCol", "stringCol", "binaryCol", "dateCol", "objectCol", "arrayCol"]
+                       ["boolCol", "intCol", "int8Col", "int16Col", "int32Col", "int64Col", "intEnumCol", "floatCol", "doubleCol",
+                        "stringCol", "binaryCol", "dateCol", "decimalCol",
+                        "objectIdCol", "objectCol", "arrayCol"]
         )
     }
 
@@ -112,10 +112,31 @@ class ObjectTests: TestCase {
         XCTAssertTrue(object.isInvalidated)
     }
 
+    func testInvalidatedWithCustomObjectClasses() {
+        var config = Realm.Configuration.defaultConfiguration
+        config.objectTypes = [SwiftObject.self, SwiftBoolObject.self]
+        let realm = try! Realm(configuration: config)
+
+        let object = SwiftObject()
+        XCTAssertFalse(object.isInvalidated)
+
+        try! realm.write {
+            realm.add(object)
+            XCTAssertFalse(object.isInvalidated)
+        }
+
+        try! realm.write {
+            realm.deleteAll()
+            XCTAssertTrue(object.isInvalidated)
+        }
+        XCTAssertTrue(object.isInvalidated)
+    }
+
     func testDescription() {
         let object = SwiftObject()
+
         // swiftlint:disable line_length
-        assertMatches(object.description, "SwiftObject \\{\n\tboolCol = 0;\n\tintCol = 123;\n\tfloatCol = 1\\.23;\n\tdoubleCol = 12\\.3;\n\tstringCol = a;\n\tbinaryCol = <61 — 1 total bytes>;\n\tdateCol = 1970-01-01 00:00:01 \\+0000;\n\tobjectCol = SwiftBoolObject \\{\n\t\tboolCol = 0;\n\t\\};\n\tarrayCol = List<SwiftBoolObject> <0x[0-9a-f]+> \\(\n\t\n\t\\);\n\\}")
+        assertMatches(object.description, "SwiftObject \\{\n\tboolCol = 0;\n\tintCol = 123;\n\tint8Col = 123;\n\tint16Col = 123;\n\tint32Col = 123;\n\tint64Col = 123;\n\tintEnumCol = 1;\n\tfloatCol = 1\\.23;\n\tdoubleCol = 12\\.3;\n\tstringCol = a;\n\tbinaryCol = <.*61.*>;\n\tdateCol = 1970-01-01 00:00:01 \\+0000;\n\tdecimalCol = 1.23E6;\n\tobjectIdCol = 1234567890ab1234567890ab;\n\tobjectCol = SwiftBoolObject \\{\n\t\tboolCol = 0;\n\t\\};\n\tarrayCol = List<SwiftBoolObject> <0x[0-9a-f]+> \\(\n\t\n\t\\);\n\\}")
 
         let recursiveObject = SwiftRecursiveObject()
         recursiveObject.objects.append(recursiveObject)
@@ -242,13 +263,17 @@ class ObjectTests: TestCase {
         let test: (SwiftObject) -> Void = { object in
             XCTAssertEqual(object.value(forKey: "boolCol") as! Bool?, false)
             XCTAssertEqual(object.value(forKey: "intCol") as! Int?, 123)
+            XCTAssertEqual(object.value(forKey: "int8Col") as! Int8?, 123)
+            XCTAssertEqual(object.value(forKey: "int16Col") as! Int16?, 123)
+            XCTAssertEqual(object.value(forKey: "int32Col") as! Int32?, 123)
+            XCTAssertEqual(object.value(forKey: "int64Col") as! Int64?, 123)
             XCTAssertEqual(object.value(forKey: "floatCol") as! Float?, 1.23 as Float)
             XCTAssertEqual(object.value(forKey: "doubleCol") as! Double?, 12.3)
             XCTAssertEqual(object.value(forKey: "stringCol") as! String?, "a")
 
             let expected = object.value(forKey: "binaryCol") as! Data
             let actual = "a".data(using: String.Encoding.utf8)!
-            XCTAssertTrue(expected == actual)
+            XCTAssertEqual(expected, actual)
 
             XCTAssertEqual(object.value(forKey: "dateCol") as! Date?, Date(timeIntervalSince1970: 1))
             XCTAssertEqual((object.value(forKey: "objectCol")! as! SwiftBoolObject).boolCol, false)
@@ -256,9 +281,99 @@ class ObjectTests: TestCase {
         }
 
         test(SwiftObject())
-        try! Realm().write {
-            let persistedObject = try! Realm().create(SwiftObject.self, value: [:])
-            test(persistedObject)
+        let realm = try! Realm()
+        try! realm.write {
+            test(realm.create(SwiftObject.self, value: [:]))
+            let addedObj = SwiftObject()
+            realm.add(addedObj)
+            test(addedObj)
+        }
+    }
+
+    func testValueForKeyOptionals() {
+        let test: (SwiftOptionalObject) -> Void = { object in
+            XCTAssertNil(object.value(forKey: "optNSStringCol"))
+            XCTAssertNil(object.value(forKey: "optStringCol"))
+            XCTAssertNil(object.value(forKey: "optBinaryCol"))
+            XCTAssertNil(object.value(forKey: "optDateCol"))
+            XCTAssertNil(object.value(forKey: "optIntCol"))
+            XCTAssertNil(object.value(forKey: "optInt8Col"))
+            XCTAssertNil(object.value(forKey: "optInt16Col"))
+            XCTAssertNil(object.value(forKey: "optInt32Col"))
+            XCTAssertNil(object.value(forKey: "optInt64Col"))
+            XCTAssertNil(object.value(forKey: "optFloatCol"))
+            XCTAssertNil(object.value(forKey: "optDoubleCol"))
+            XCTAssertNil(object.value(forKey: "optBoolCol"))
+            XCTAssertNil(object.value(forKey: "optEnumCol"))
+        }
+
+        test(SwiftOptionalObject())
+        let realm = try! Realm()
+        try! realm.write {
+            test(realm.create(SwiftOptionalObject.self, value: [:]))
+            let addedObj = SwiftOptionalObject()
+            realm.add(addedObj)
+            test(addedObj)
+        }
+    }
+
+    func testValueForKeyList() {
+        let test: (SwiftListObject) -> Void = { object in
+            XCTAssertNil((object.value(forKey: "int") as! List<Int>).first)
+            XCTAssertNil((object.value(forKey: "int8") as! List<Int8>).first)
+            XCTAssertNil((object.value(forKey: "int16") as! List<Int16>).first)
+            XCTAssertNil((object.value(forKey: "int32") as! List<Int32>).first)
+            XCTAssertNil((object.value(forKey: "int64") as! List<Int64>).first)
+            XCTAssertNil((object.value(forKey: "float") as! List<Float>).first)
+            XCTAssertNil((object.value(forKey: "double") as! List<Double>).first)
+            XCTAssertNil((object.value(forKey: "string") as! List<String>).first)
+            XCTAssertNil((object.value(forKey: "data") as! List<Data>).first)
+            XCTAssertNil((object.value(forKey: "date") as! List<Date>).first)
+            XCTAssertNil((object.value(forKey: "decimal") as! List<Decimal128>).first)
+            XCTAssertNil((object.value(forKey: "objectId") as! List<ObjectId>).first)
+
+            // The `as Any?` casts below are only to silence the warning about it
+            // happening implicitly and are not functionally required
+            XCTAssertNil((object.value(forKey: "intOpt") as! List<Int?>).first as Any?)
+            XCTAssertNil((object.value(forKey: "int8Opt") as! List<Int8?>).first as Any?)
+            XCTAssertNil((object.value(forKey: "int16Opt") as! List<Int16?>).first as Any?)
+            XCTAssertNil((object.value(forKey: "int32Opt") as! List<Int32?>).first as Any?)
+            XCTAssertNil((object.value(forKey: "int64Opt") as! List<Int64?>).first as Any?)
+            XCTAssertNil((object.value(forKey: "floatOpt") as! List<Float?>).first as Any?)
+            XCTAssertNil((object.value(forKey: "doubleOpt") as! List<Double?>).first as Any?)
+            XCTAssertNil((object.value(forKey: "stringOpt") as! List<String?>).first as Any?)
+            XCTAssertNil((object.value(forKey: "dataOpt") as! List<Data?>).first as Any?)
+            XCTAssertNil((object.value(forKey: "dateOpt") as! List<Date?>).first as Any?)
+            XCTAssertNil((object.value(forKey: "decimalOpt") as! List<Decimal128?>).first as Any?)
+            XCTAssertNil((object.value(forKey: "objectIdOpt") as! List<ObjectId?>).first as Any?)
+        }
+
+        test(SwiftListObject())
+        let realm = try! Realm()
+        try! realm.write {
+            test(realm.create(SwiftListObject.self, value: [:]))
+            let addedObj = SwiftListObject()
+            realm.add(addedObj)
+            test(addedObj)
+        }
+    }
+
+    func testValueForKeyLinkingObjects() {
+        let test: (SwiftDogObject) -> Void = { object in
+            let owners = object.value(forKey: "owners") as! LinkingObjects<SwiftOwnerObject>
+            if object.realm != nil {
+                XCTAssertEqual(owners.first!.name, "owner name")
+            }
+        }
+
+        let dog = SwiftDogObject()
+        let owner = SwiftOwnerObject(value: ["owner name", dog])
+        test(dog)
+        let realm = try! Realm()
+        try! realm.write {
+            test(realm.create(SwiftOwnerObject.self, value: owner).dog!)
+            realm.add(owner)
+            test(dog)
         }
     }
 
@@ -286,6 +401,18 @@ class ObjectTests: TestCase {
 
         setter(object, 321, "intCol")
         XCTAssertEqual(getter(object, "intCol") as! Int?, 321)
+
+        setter(object, Int8(1), "int8Col")
+        XCTAssertEqual(getter(object, "int8Col") as! Int8?, 1)
+
+        setter(object, Int16(321), "int16Col")
+        XCTAssertEqual(getter(object, "int16Col") as! Int16?, 321)
+
+        setter(object, Int32(321), "int32Col")
+        XCTAssertEqual(getter(object, "int32Col") as! Int32?, 321)
+
+        setter(object, Int64(321), "int64Col")
+        XCTAssertEqual(getter(object, "int64Col") as! Int64?, 321)
 
         setter(object, NSNumber(value: 32.1 as Float), "floatCol")
         XCTAssertEqual(getter(object, "floatCol") as! Float?, 32.1 as Float)
@@ -338,6 +465,18 @@ class ObjectTests: TestCase {
 
         setter(object, 321, "intCol")
         XCTAssertEqual((getter(object, "intCol") as! Int), 321)
+
+        setter(object, Int8(1), "int8Col")
+        XCTAssertEqual(getter(object, "int8Col") as! Int8?, 1)
+
+        setter(object, Int16(321), "int16Col")
+        XCTAssertEqual(getter(object, "int16Col") as! Int16?, 321)
+
+        setter(object, Int32(321), "int32Col")
+        XCTAssertEqual(getter(object, "int32Col") as! Int32?, 321)
+
+        setter(object, Int64(321), "int64Col")
+        XCTAssertEqual(getter(object, "int64Col") as! Int64?, 321)
 
         setter(object, NSNumber(value: 32.1 as Float), "floatCol")
         XCTAssertEqual((getter(object, "floatCol") as! Float), 32.1 as Float)
@@ -423,9 +562,8 @@ class ObjectTests: TestCase {
     func testSubscript() {
         let setter: (Object, Any?, String) -> Void = { object, value, key in
             object[key] = value
-            return
         }
-        let getter: (Object, String) -> (Any?) = { object, key in
+        let getter: (Object, String) -> Any? = { object, key in
             object[key]
         }
 
@@ -469,12 +607,14 @@ class ObjectTests: TestCase {
             object.stringCol = "Hello world!"
             object.dateCol = now
             object.dataCol = data
-            object.numCol = 42
         }
         XCTAssertEqual("Hello world!", object.stringCol)
         XCTAssertEqual(now, object.dateCol)
         XCTAssertEqual(data, object.dataCol)
-        XCTAssertEqual(42, object.numCol)
+    }
+
+    func testObserveUnmanagedObject() {
+        assertThrows(SwiftIntObject().observe { _ in }, reason: "managed")
     }
 
     func testDeleteObservedObject() {
@@ -500,19 +640,24 @@ class ObjectTests: TestCase {
         token.invalidate()
     }
 
-    func expectChange<T: Equatable, U: Equatable>(_ name: String, _ old: T?, _ new: U?) -> ((ObjectChange) -> Void) {
-        let exp = expectation(description: "")
-        return { change in
-            if case .change(let properties) = change {
-                XCTAssertEqual(properties.count, 1)
-                if let prop = properties.first {
-                    XCTAssertEqual(prop.name, name)
-                    XCTAssertEqual(prop.oldValue as? T, old)
-                    XCTAssertEqual(prop.newValue as? U, new)
-                }
-            } else {
-                XCTFail("expected .change, got \(change)")
+    func checkChange<T: Equatable, U: Equatable>(_ name: String, _ old: T?, _ new: U?, _ change: ObjectChange<ObjectBase>) {
+        if case .change(_, let properties) = change {
+            XCTAssertEqual(properties.count, 1)
+            if let prop = properties.first {
+                XCTAssertEqual(prop.name, name)
+                XCTAssertEqual(prop.oldValue as? T, old)
+                XCTAssertEqual(prop.newValue as? U, new)
             }
+        } else {
+            XCTFail("expected .change, got \(change)")
+        }
+
+    }
+
+    func expectChange<T: Equatable, U: Equatable>(_ name: String, _ old: T?, _ new: U?) -> ((ObjectChange<ObjectBase>) -> Void) {
+        let exp = expectation(description: "change from \(String(describing: old)) to \(String(describing: new))")
+        return { change in
+            self.checkChange(name, old, new, change)
             exp.fulfill()
         }
     }
@@ -611,6 +756,64 @@ class ObjectTests: TestCase {
         token.invalidate()
     }
 
+    func testObserveOnDifferentQueue() {
+        let realm = try! Realm()
+        realm.beginWrite()
+        let object = realm.create(SwiftIntObject.self, value: [1])
+        try! realm.commitWrite()
+
+        let queue = DispatchQueue(label: "label")
+        let sema = DispatchSemaphore(value: 0)
+        let token = object.observe(on: queue) { change in
+            self.checkChange("intCol", 1, 2, change)
+            sema.signal()
+        }
+        // wait for the notification to be registered as otherwise it may not
+        // have the old value
+        queue.sync { }
+        try! realm.write {
+            object.intCol = 2
+        }
+
+        sema.wait()
+        token.invalidate()
+        queue.sync { }
+    }
+
+    func testInvalidateObserverOnDifferentQueueBeforeRegistration() {
+        let realm = try! Realm()
+        realm.beginWrite()
+        let object = realm.create(SwiftIntObject.self, value: [1])
+        try! realm.commitWrite()
+
+        let queue = DispatchQueue(label: "label")
+        let sema = DispatchSemaphore(value: 0)
+
+        // Block the queue for now
+        queue.async { sema.wait() }
+
+        // Add two observers, invalidating one
+        let token1 = object.observe(on: queue) { _ in
+            XCTFail("notification should not have fired")
+        }
+        let token2 = object.observe(on: queue) { _ in
+            sema.signal()
+        }
+        token1.invalidate()
+
+        // Now let token2 registration happen
+        sema.signal()
+        queue.sync { }
+
+        // Perform a write and make sure only token2 notifies
+        try! realm.write {
+            object.intCol = 2
+        }
+        sema.wait()
+        token2.invalidate()
+        queue.sync { }
+    }
+
     func testEqualityForObjectTypeWithPrimaryKey() {
         let realm = try! Realm()
         let pk = "123456"
@@ -668,6 +871,17 @@ class ObjectTests: TestCase {
         XCTAssertTrue(testObject.isSameObject(as: retrievedObject))
     }
 
+    func testEqualityForFrozenObjectTypeWithoutPrimaryKey() {
+        let realm = try! Realm()
+        let testObject = try! realm.write {
+            realm.create(SwiftStringObject.self)
+        }
+
+        let frozen = testObject.freeze()
+        let retrievedObject = realm.objects(SwiftStringObject.self).first!.freeze()
+        XCTAssertEqual(frozen, retrievedObject)
+    }
+
     func testRetrievingObjectWithRuntimeType() {
         let realm = try! Realm()
 
@@ -708,5 +922,207 @@ class ObjectTests: TestCase {
 
         // Shouldn't throw when using type(of:).
         XCTAssertEqual(realm.objects(type(of: managedStringObject)).count, 1)
+    }
+
+    func testIsFrozen() {
+        let obj = SwiftStringObject()
+        XCTAssertFalse(obj.isFrozen)
+
+        let realm = try! Realm()
+        try! realm.write { realm.add(obj) }
+        XCTAssertFalse(obj.isFrozen)
+
+        let frozen = obj.freeze()
+        XCTAssertFalse(obj.isFrozen)
+        XCTAssertTrue(frozen.isFrozen)
+    }
+
+    func testFreezeUnmanaged() {
+        assertThrows(SwiftStringObject().freeze(), reason: "Unmanaged objects cannot be frozen.")
+    }
+
+    func testFreezeDynamicObject() {
+        let realm = try! Realm()
+        try! realm.write {
+            realm.create(SwiftObject.self, value: ["arrayCol": [[true]]])
+        }
+        let obj = realm.dynamicObjects("SwiftObject").first!.freeze()
+        XCTAssertTrue(obj.isFrozen)
+        XCTAssertTrue(obj.dynamicList("arrayCol").isFrozen)
+        XCTAssertTrue(obj.dynamicList("arrayCol").first!.isFrozen)
+    }
+
+    func testFreezeAllPropertyTypes() {
+        let realm = try! Realm()
+        let (obj, optObj, listObj) = try! realm.write {
+            return (
+                realm.create(SwiftObject.self, value: [
+                    "boolCol": true,
+                    "intCol": 456,
+                    "floatCol": 4.56 as Float,
+                    "doubleCol": 45.6,
+                    "stringCol": "b",
+                    "binaryCol": "b".data(using: String.Encoding.utf8)!,
+                    "dateCol": Date(timeIntervalSince1970: 2),
+                    "objectCol": [true]
+                ]),
+                realm.create(SwiftOptionalObject.self, value: [
+                    "optNSStringCol": "NSString",
+                    "optStringCol": "String",
+                    "optBinaryCol": Data(),
+                    "optDateCol": Date(),
+                    "optIntCol": 1,
+                    "optInt8Col": 2,
+                    "optInt16Col": 3,
+                    "optInt32Col": 4,
+                    "optInt64Col": 5,
+                    "optFloatCol": 6.1,
+                    "optDoubleCol": 7.2,
+                    "optBoolCol": true
+                ]),
+                realm.create(SwiftListObject.self, value: [
+                    "int": [1],
+                    "int8": [2],
+                    "int16": [3],
+                    "int32": [4],
+                    "int64": [5],
+                    "float": [6.6 as Float],
+                    "double": [7.7],
+                    "string": ["8"],
+                    "data": ["9".data(using: String.Encoding.utf8)!],
+                    "date": [Date(timeIntervalSince1970: 10)],
+                    "intOpt": [11, nil],
+                    "int8Opt": [12, nil],
+                    "int16Opt": [13, nil],
+                    "int32Opt": [14, nil],
+                    "int64Opt": [15, nil],
+                    "floatOpt": [16.16, nil],
+                    "doubleOpt": [17.17, nil],
+                    "stringOpt": ["18", nil],
+                    "dataOpt": ["19".data(using: String.Encoding.utf8)!, nil],
+                    "dateOpt": [Date(timeIntervalSince1970: 20), nil]
+                ])
+            )
+        }
+
+        let frozenObj = obj.freeze()
+        XCTAssertEqual(obj.boolCol, frozenObj.boolCol)
+        XCTAssertEqual(obj.intCol, frozenObj.intCol)
+        XCTAssertEqual(obj.floatCol, frozenObj.floatCol)
+        XCTAssertEqual(obj.doubleCol, frozenObj.doubleCol)
+        XCTAssertEqual(obj.stringCol, frozenObj.stringCol)
+        XCTAssertEqual(obj.binaryCol, frozenObj.binaryCol)
+        XCTAssertEqual(obj.dateCol, frozenObj.dateCol)
+        XCTAssertEqual(obj.objectCol?.boolCol, frozenObj.objectCol?.boolCol)
+
+        let frozenOptObj = optObj.freeze()
+        XCTAssertEqual(optObj.optNSStringCol, frozenOptObj.optNSStringCol)
+        XCTAssertEqual(optObj.optStringCol, frozenOptObj.optStringCol)
+        XCTAssertEqual(optObj.optBinaryCol, frozenOptObj.optBinaryCol)
+        XCTAssertEqual(optObj.optDateCol, frozenOptObj.optDateCol)
+        XCTAssertEqual(optObj.optIntCol.value, frozenOptObj.optIntCol.value)
+        XCTAssertEqual(optObj.optInt8Col.value, frozenOptObj.optInt8Col.value)
+        XCTAssertEqual(optObj.optInt16Col.value, frozenOptObj.optInt16Col.value)
+        XCTAssertEqual(optObj.optInt32Col.value, frozenOptObj.optInt32Col.value)
+        XCTAssertEqual(optObj.optInt64Col.value, frozenOptObj.optInt64Col.value)
+        XCTAssertEqual(optObj.optFloatCol.value, frozenOptObj.optFloatCol.value)
+        XCTAssertEqual(optObj.optDoubleCol.value, frozenOptObj.optDoubleCol.value)
+        XCTAssertEqual(optObj.optBoolCol.value, frozenOptObj.optBoolCol.value)
+        XCTAssertEqual(optObj.optEnumCol.value, frozenOptObj.optEnumCol.value)
+
+        let frozenListObj = listObj.freeze()
+        XCTAssertEqual(Array(listObj.int), Array(frozenListObj.int))
+        XCTAssertEqual(Array(listObj.int8), Array(frozenListObj.int8))
+        XCTAssertEqual(Array(listObj.int16), Array(frozenListObj.int16))
+        XCTAssertEqual(Array(listObj.int32), Array(frozenListObj.int32))
+        XCTAssertEqual(Array(listObj.int64), Array(frozenListObj.int64))
+        XCTAssertEqual(Array(listObj.float), Array(frozenListObj.float))
+        XCTAssertEqual(Array(listObj.double), Array(frozenListObj.double))
+        XCTAssertEqual(Array(listObj.string), Array(frozenListObj.string))
+        XCTAssertEqual(Array(listObj.data), Array(frozenListObj.data))
+        XCTAssertEqual(Array(listObj.date), Array(frozenListObj.date))
+        XCTAssertEqual(Array(listObj.intOpt), Array(frozenListObj.intOpt))
+        XCTAssertEqual(Array(listObj.int8Opt), Array(frozenListObj.int8Opt))
+        XCTAssertEqual(Array(listObj.int16Opt), Array(frozenListObj.int16Opt))
+        XCTAssertEqual(Array(listObj.int32Opt), Array(frozenListObj.int32Opt))
+        XCTAssertEqual(Array(listObj.int64Opt), Array(frozenListObj.int64Opt))
+        XCTAssertEqual(Array(listObj.floatOpt), Array(frozenListObj.floatOpt))
+        XCTAssertEqual(Array(listObj.doubleOpt), Array(frozenListObj.doubleOpt))
+        XCTAssertEqual(Array(listObj.stringOpt), Array(frozenListObj.stringOpt))
+        XCTAssertEqual(Array(listObj.dataOpt), Array(frozenListObj.dataOpt))
+        XCTAssertEqual(Array(listObj.dateOpt), Array(frozenListObj.dateOpt))
+    }
+
+    func testThaw() {
+        let realm = try! Realm()
+        let obj = try! realm.write {
+            realm.create(SwiftBoolObject.self, value: ["boolCol": true])
+        }
+
+        let frozenObj = obj.freeze()
+        XCTAssertTrue(frozenObj.isFrozen)
+        assertThrows(try! frozenObj.realm!.write {}, reason: "Can't perform transactions on a frozen Realm")
+
+        let liveObj = frozenObj.thaw()!
+        XCTAssertFalse(liveObj.isFrozen)
+        XCTAssertEqual(liveObj.boolCol, frozenObj.boolCol)
+
+        try! liveObj.realm!.write({ liveObj.boolCol = false })
+        XCTAssertNotEqual(liveObj.boolCol, frozenObj.boolCol)
+    }
+
+    func testThawUnmanaged() {
+        assertThrows(SwiftBoolObject().thaw(), reason: "Unmanaged objects cannot be thawed.")
+    }
+
+    func testThawDeleted() {
+        let realm = try! Realm()
+        let obj = try! realm.write {
+            realm.create(SwiftBoolObject.self, value: ["boolCol": true])
+        }
+
+        let frozen = obj.freeze()
+        try! realm.write { realm.delete(obj) }
+        XCTAssertNotNil(frozen)
+
+        let thawed = frozen.thaw()
+        XCTAssertNil(thawed, "Thaw should return nil when object was deleted")
+    }
+
+    func testThawPreviousVersion() {
+        let realm = try! Realm()
+        let obj = try! realm.write {
+            realm.create(SwiftBoolObject.self, value: ["boolCol": true])
+        }
+
+        let frozen = obj.freeze()
+        XCTAssertTrue(frozen.isFrozen)
+
+        try! obj.realm!.write({ obj.boolCol = false })
+        XCTAssert(frozen.boolCol, "Frozen objects shouldn't mutate")
+
+        let thawed = frozen.thaw()!
+        XCTAssertFalse(thawed.isFrozen)
+        XCTAssertFalse(thawed.boolCol, "Thaw should reflect transactions since the original reference was frozen")
+    }
+
+    func testThawUpdatedOnDifferentThread() {
+        let obj = try! Realm().write {
+            try! Realm().create(SwiftBoolObject.self, value: ["boolCol": true])
+        }
+        let frozen = obj.freeze()
+        let thawed = frozen.thaw()!
+        let tsr = ThreadSafeReference(to: thawed)
+
+        dispatchSyncNewThread {
+            let resolved = try! Realm().resolve(tsr)!
+            try! Realm().write({ resolved.boolCol = false })
+        }
+
+        XCTAssert(frozen.thaw()!.boolCol)
+        XCTAssert(thawed.boolCol)
+        try! Realm().refresh()
+        XCTAssertFalse(frozen.thaw()!.boolCol)
+        XCTAssertFalse(thawed.boolCol)
     }
 }

@@ -289,7 +289,7 @@
     RLMAssertThrowsWithReason([[AllPrimitiveArrays alloc] initWithValue:@{@"intObj": @[NSNull.null]}],
                              @"Invalid value '<null>' of type 'NSNull' for 'int' array property 'AllPrimitiveArrays.intObj'.");
     RLMAssertThrowsWithReason([[AllPrimitiveArrays alloc] initWithValue:@{@"intObj": @[@1.1]}],
-                             @"Invalid value '1.1' of type '__NSCFNumber' for 'int' array property 'AllPrimitiveArrays.intObj'.");
+                             @"Invalid value '1.1' of type '" RLMConstantDouble "' for 'int' array property 'AllPrimitiveArrays.intObj'.");
     RLMAssertThrowsWithReason([[AllPrimitiveArrays alloc] initWithValue:@{@"intObj": @[@"0"]}],
                              @"Invalid value '0' of type '__NSCFConstantString' for 'int' array property 'AllPrimitiveArrays.intObj'.");
     RLMAssertThrowsWithReason([[AllPrimitiveArrays alloc] initWithValue:@{@"intObj": @1}],
@@ -331,22 +331,20 @@
 }
 
 - (void)testInitAllPropertyTypes {
-    auto now = [NSDate date];
+    auto now = [NSDate dateWithTimeIntervalSince1970:1];
     auto bytes = [NSData dataWithBytes:"a" length:1];
     auto so = [[StringObject alloc] init];
     so.stringCol = @"string";
-    auto ao = [[AllTypesObject alloc] initWithValue:@[@YES, @1, @1.1f, @1.11,
-                                                      @"string", bytes,
-                                                      now, @YES, @11, so]];
+    auto ao = [[AllTypesObject alloc] initWithValue:[AllTypesObject values:1 stringObject:so]];
     XCTAssertEqual(ao.boolCol, YES);
     XCTAssertEqual(ao.intCol, 1);
     XCTAssertEqual(ao.floatCol, 1.1f);
     XCTAssertEqual(ao.doubleCol, 1.11);
-    XCTAssertEqualObjects(ao.stringCol, @"string");
+    XCTAssertEqualObjects(ao.stringCol, @"a");
     XCTAssertEqualObjects(ao.binaryCol, bytes);
     XCTAssertEqual(ao.dateCol, now);
     XCTAssertEqual(ao.cBoolCol, true);
-    XCTAssertEqual(ao.longCol, 11);
+    XCTAssertEqual(ao.longCol, INT_MAX + 1LL);
     XCTAssertEqual(ao.objectCol, so);
 
     auto opt = [[AllOptionalTypes alloc] initWithValue:@[NSNull.null, NSNull.null,
@@ -398,24 +396,24 @@
 - (void)testInitValidatesNumberTypes {
     XCTAssertNoThrow(([[NumberObject alloc] initWithValue:@{}]));
     RLMAssertThrowsWithReason(([[NumberObject alloc] initWithValue:@{@"intObj": @1.1}]),
-                              @"Invalid value '1.1' of type '__NSCFNumber' for 'int?' property 'NumberObject.intObj'.");
+                              @"Invalid value '1.1' of type '" RLMConstantDouble "' for 'int?' property 'NumberObject.intObj'.");
     RLMAssertThrowsWithReason(([[NumberObject alloc] initWithValue:@{@"intObj": @1.1f}]),
-                              @"Invalid value '1.1' of type '__NSCFNumber' for 'int?' property 'NumberObject.intObj'.");
+                              @"Invalid value '1.1' of type '" RLMConstantFloat "' for 'int?' property 'NumberObject.intObj'.");
 
     XCTAssertNoThrow(([[NumberObject alloc] initWithValue:@{@"boolObj": @YES}]));
     XCTAssertNoThrow(([[NumberObject alloc] initWithValue:@{@"boolObj": @1}]));
     XCTAssertNoThrow(([[NumberObject alloc] initWithValue:@{@"boolObj": @0}]));
     // This error is kinda bad....
     RLMAssertThrowsWithReason(([[NumberObject alloc] initWithValue:@{@"boolObj": @1.0}]),
-                              @"Invalid value '1' of type '__NSCFNumber' for 'bool?' property 'NumberObject.boolObj'.");
+                              @"Invalid value '1' of type '" RLMConstantDouble "' for 'bool?' property 'NumberObject.boolObj'.");
     RLMAssertThrowsWithReason(([[NumberObject alloc] initWithValue:@{@"boolObj": @1.0f}]),
-                              @"Invalid value '1' of type '__NSCFNumber' for 'bool?' property 'NumberObject.boolObj'.");
+                              @"Invalid value '1' of type '" RLMConstantFloat "' for 'bool?' property 'NumberObject.boolObj'.");
     RLMAssertThrowsWithReason(([[NumberObject alloc] initWithValue:@{@"boolObj": @2}]),
-                              @"Invalid value '2' of type '__NSCFNumber' for 'bool?' property 'NumberObject.boolObj'.");
+                              @"Invalid value '2' of type '" RLMConstantInt "' for 'bool?' property 'NumberObject.boolObj'.");
 
     XCTAssertNoThrow(([[NumberObject alloc] initWithValue:@{@"floatObj": @1.1}]));
     RLMAssertThrowsWithReasonMatching(([[NumberObject alloc] initWithValue:@{@"floatObj": @DBL_MAX}]),
-                                      @"Invalid value '.*' of type '__NSCFNumber' for 'float\\?' property 'NumberObject.floatObj'");
+                                      @"Invalid value '.*' of type '" RLMConstantDouble "' for 'float\\?' property 'NumberObject.floatObj'");
 
     XCTAssertNoThrow(([[NumberObject alloc] initWithValue:@{@"doubleObj": @DBL_MAX}]));
 }
@@ -588,22 +586,20 @@
     auto realm = RLMRealm.defaultRealm;
     [realm beginWriteTransaction];
 
-    auto now = [NSDate date];
+    auto now = [NSDate dateWithTimeIntervalSince1970:1];
     auto bytes = [NSData dataWithBytes:"a" length:1];
     auto so = [[StringObject alloc] init];
     so.stringCol = @"string";
-    auto ao = [AllTypesObject createInRealm:realm withValue:@[@YES, @1, @1.1f, @1.11,
-                                                              @"string", bytes,
-                                                              now, @YES, @11, so]];
+    auto ao = [AllTypesObject createInRealm:realm withValue:[AllTypesObject values:1 stringObject:so]];
     XCTAssertEqual(ao.boolCol, YES);
     XCTAssertEqual(ao.intCol, 1);
     XCTAssertEqual(ao.floatCol, 1.1f);
     XCTAssertEqual(ao.doubleCol, 1.11);
-    XCTAssertEqualObjects(ao.stringCol, @"string");
+    XCTAssertEqualObjects(ao.stringCol, @"a");
     XCTAssertEqualObjects(ao.binaryCol, bytes);
     XCTAssertEqualObjects(ao.dateCol, now);
     XCTAssertEqual(ao.cBoolCol, true);
-    XCTAssertEqual(ao.longCol, 11);
+    XCTAssertEqual(ao.longCol, INT_MAX + 1LL);
     XCTAssertNotEqual(ao.objectCol, so);
     XCTAssertEqualObjects(ao.objectCol.stringCol, @"string");
 
@@ -746,7 +742,7 @@
                              @"Invalid value '<null>' of type 'NSNull' for 'int' array property 'AllPrimitiveArrays.intObj'.");
     RLMAssertThrowsWithReason([AllPrimitiveArrays createInRealm:realm
                                        withValue:@{@"intObj": @[@1.1]}],
-                             @"Invalid value '1.1' of type '__NSCFNumber' for 'int' array property 'AllPrimitiveArrays.intObj'.");
+                             @"Invalid value '1.1' of type '" RLMConstantDouble "' for 'int' array property 'AllPrimitiveArrays.intObj'.");
     RLMAssertThrowsWithReason([AllPrimitiveArrays createInRealm:realm
                                        withValue:@{@"intObj": @[@"0"]}],
                              @"Invalid value '0' of type '__NSCFConstantString' for 'int' array property 'AllPrimitiveArrays.intObj'.");
@@ -794,9 +790,9 @@
     auto realm = RLMRealm.defaultRealm;
     [realm beginWriteTransaction];
 
-    RLMAssertThrowsWithReason([AllOptionalPrimitiveArrays createInRealm:realm
-                                       withValue:@{@"intObj": @[@1.1]}],
-                             @"Invalid value '1.1' of type '__NSCFNumber' for 'int?' array property 'AllOptionalPrimitiveArrays.intObj'.");
+    RLMAssertThrowsWithReasonMatching([AllOptionalPrimitiveArrays createInRealm:realm
+                                                                      withValue:@{@"intObj": @[@1.1]}],
+                                      @"Invalid value '1.1' of type '.*NS.*Number' for 'int\\?' array property 'AllOptionalPrimitiveArrays.intObj'.");
     RLMAssertThrowsWithReason([AllOptionalPrimitiveArrays createInRealm:realm
                                        withValue:@{@"intObj": @[@"0"]}],
                              @"Invalid value '0' of type '__NSCFConstantString' for 'int?' array property 'AllOptionalPrimitiveArrays.intObj'.");
@@ -922,11 +918,15 @@
                                       @"Realm must not be nil");
 }
 
-- (void)testCreatingObjectWithoutAnyPropertiesThrows {
+- (void)testCreatingObjectWithoutAnyPropertiesWorks {
+    @autoreleasepool {
+        auto realm = [RLMRealm defaultRealm];
+        [realm beginWriteTransaction];
+        [AbstractObject createInRealm:realm withValue:@[]];
+        [realm commitWriteTransaction];
+    }
     auto realm = [RLMRealm defaultRealm];
-    [realm beginWriteTransaction];
-    RLMAssertThrows([AbstractObject createInRealm:realm withValue:@[]]);
-    [realm cancelWriteTransaction];
+    XCTAssertEqual(1U, [AbstractObject allObjectsInRealm:realm].count);
 }
 
 - (void)testCreateWithNonEnumerableValueForArrayProperty {
@@ -1249,9 +1249,12 @@
     auto realm = [RLMRealm defaultRealm];
     [realm beginWriteTransaction];
 
-    auto dog = [DogObject createInRealm:realm withValue:@[@"name", @1]];
+    id dog = [DogObject createInRealm:realm withValue:@[@"name", @1]];
+    id dog2 = [DogObject allObjectsInRealm:realm].firstObject;
     [realm deleteObject:dog];
     RLMAssertThrowsWithReason([realm addObject:dog],
+                              @"Adding a deleted or invalidated");
+    RLMAssertThrowsWithReason([realm addObject:dog2],
                               @"Adding a deleted or invalidated");
 
     [realm cancelWriteTransaction];
@@ -1292,11 +1295,15 @@
     [realm cancelWriteTransaction];
 }
 
-- (void)testAddingObjectWithoutAnyPropertiesThrows {
+- (void)testAddingObjectWithoutAnyPropertiesWorks {
+    @autoreleasepool {
+        auto realm = [RLMRealm defaultRealm];
+        [realm beginWriteTransaction];
+        [realm addObject:[[AbstractObject alloc] initWithValue:@[]]];
+        [realm commitWriteTransaction];
+    }
     auto realm = [RLMRealm defaultRealm];
-    [realm beginWriteTransaction];
-    RLMAssertThrows([realm addObject:[[AbstractObject alloc] initWithValue:@[]]]);
-    [realm cancelWriteTransaction];
+    XCTAssertEqual(1U, [AbstractObject allObjectsInRealm:realm].count);
 }
 
 - (void)testAddWithCustomAccessors {
@@ -1408,6 +1415,7 @@
 
     RLMAssertThrowsWithReason([realm addOrUpdateObject:[DogObject new]],
                               @"'DogObject' does not have a primary key");
+    [realm cancelWriteTransaction];
 }
 
 - (void)testAddOrUpdateUpdatesExistingItemWithSamePK {

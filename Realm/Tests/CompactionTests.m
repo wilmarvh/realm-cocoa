@@ -79,14 +79,13 @@ static const NSUInteger count = 1000;
     RLMRealmConfiguration *configuration = [RLMRealmConfiguration defaultConfiguration];
     configuration.fileURL = RLMTestRealmURL();
     configuration.shouldCompactOnLaunch = ^BOOL(NSUInteger totalBytes, NSUInteger usedBytes){
-        // Confirm expected sizes
-        XCTAssertEqual(totalBytes, _expectedTotalBytesBefore);
+        // The reported size is the logical size of the file and not the size
+        // on disk for encrypted Realms
+        if (!self.encryptTests) {
+            XCTAssertEqual(totalBytes, _expectedTotalBytesBefore);
+        }
         XCTAssertTrue((usedBytes < totalBytes) && (usedBytes > expectedUsedBytesBeforeMin));
-
-        // Compact if the file is over 500KB in size and less than 20% 'used'
-        // In practice, users might want to use values closer to 100MB and 50%
-        NSUInteger fiveHundredKB = 500 * 1024;
-        return (totalBytes > fiveHundredKB) && (usedBytes / totalBytes) < 0.2;
+        return true;
     };
 
     // Confirm expected sizes before and after opening the Realm
@@ -189,16 +188,14 @@ static const NSUInteger count = 1000;
     __block BOOL compactBlockInvoked = NO;
 
     configurationWithCompactBlock.shouldCompactOnLaunch = ^BOOL(NSUInteger totalBytes, NSUInteger usedBytes){
-        // Confirm expected sizes
-        XCTAssertEqual(totalBytes, _expectedTotalBytesBefore);
+        // The reported size is the logical size of the file and not the size
+        // on disk for encrypted Realms
+        if (!self.encryptTests) {
+            XCTAssertEqual(totalBytes, _expectedTotalBytesBefore);
+        }
         XCTAssertTrue((usedBytes < totalBytes) && (usedBytes > expectedUsedBytesBeforeMin));
-
-        // Compact if the file is over 500KB in size and less than 20% 'used'
-        // In practice, users might want to use values closer to 100MB and 50%
-        NSUInteger fiveHundredKB = 500 * 1024;
-        BOOL shouldCompact = (totalBytes > fiveHundredKB) && (usedBytes / totalBytes) < 0.2;
         compactBlockInvoked = YES;
-        return shouldCompact;
+        return true;
     };
 
     // Confirm expected sizes before and after opening the Realm
@@ -218,8 +215,11 @@ static const NSUInteger count = 1000;
     RLMRealmConfiguration *configuration = [RLMRealmConfiguration defaultConfiguration];
     configuration.fileURL = RLMTestRealmURL();
     configuration.shouldCompactOnLaunch = ^BOOL(NSUInteger totalBytes, NSUInteger usedBytes){
-        // Confirm expected sizes
-        XCTAssertEqual(totalBytes, _expectedTotalBytesBefore);
+        // The reported size is the logical size of the file and not the size
+        // on disk for encrypted Realms
+        if (!self.encryptTests) {
+            XCTAssertEqual(totalBytes, _expectedTotalBytesBefore);
+        }
         XCTAssertTrue((usedBytes < totalBytes) && (usedBytes > expectedUsedBytesBeforeMin));
 
         // Don't compact.

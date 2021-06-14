@@ -17,96 +17,100 @@
 ////////////////////////////////////////////////////////////////////////////
 
 #import "RLMMultiProcessTestCase.h"
-#import "RLMSyncConfiguration_Private.h"
 
+@class RLMAppConfiguration;
+typedef NS_ENUM(NSUInteger, RLMSyncStopPolicy);
 typedef void(^RLMSyncBasicErrorReportingBlock)(NSError * _Nullable);
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface RLMSyncManager ()
-- (void)setSessionCompletionNotifier:(RLMSyncBasicErrorReportingBlock)sessionCompletionNotifier;
+@interface Dog : RLMObject
+
+@property RLMObjectId *_id;
+@property NSString *breed;
+@property NSString *name;
+@property NSString *realm_id;
+
 @end
 
-@interface SyncObject : RLMObject
-@property NSString *stringProp;
+@interface Person : RLMObject
+
+@property RLMObjectId *_id;
+@property NSInteger age;
+@property NSString *firstName;
+@property NSString *lastName;
+
++ (instancetype)john;
++ (instancetype)paul;
++ (instancetype)ringo;
++ (instancetype)george;
+
 @end
 
 @interface HugeSyncObject : RLMObject
+@property RLMObjectId *_id;
+@property NSString *realm_id;
 @property NSData *dataProp;
-+ (instancetype)object;
++ (instancetype)objectWithRealmId:(NSString *)realmId;
+@end
+
+@interface AsyncOpenConnectionTimeoutTransport : RLMNetworkTransport
 @end
 
 @interface RLMSyncTestCase : RLMMultiProcessTestCase
 
-+ (RLMSyncManager *)managerForCurrentTest;
+@property (nonatomic, readonly) NSString *appId;
+@property (nonatomic, readonly) RLMApp *app;
+@property (nonatomic, readonly) RLMUser *anonymousUser;
+@property (nonatomic, readonly) RLMAppConfiguration *defaultAppConfiguration;
 
-+ (NSURL *)authServerURL;
-+ (NSURL *)secureAuthServerURL;
+/// Any stray app ids passed between processes
+@property (nonatomic, readonly) NSArray<NSString *> *appIds;
 
-+ (RLMSyncCredentials *)basicCredentialsWithName:(NSString *)name register:(BOOL)shouldRegister;
+- (RLMCredentials *)basicCredentialsWithName:(NSString *)name register:(BOOL)shouldRegister;
 
-+ (NSURL *)onDiskPathForSyncedRealm:(RLMRealm *)realm;
+/// Synchronously open a synced Realm via asyncOpen and return the Realm.
+- (RLMRealm *)asyncOpenRealmWithConfiguration:(RLMRealmConfiguration *)configuration;
 
-/// Retrieve the administrator token.
-- (NSString *)adminToken;
+/// Synchronously open a synced Realm via asyncOpen and return the expected error.
+- (NSError *)asyncOpenErrorWithConfiguration:(RLMRealmConfiguration *)configuration;
 
-/// Read and delete the last email sent by ROS to the given address.
-/// Returns nil if none has been sent to that address.
-- (nullable NSString *)emailForAddress:(NSString *)email;
+/// Synchronously open a synced Realm and wait for downloads.
+- (RLMRealm *)openRealmForPartitionValue:(nullable id<RLMBSON>)partitionValue
+                                    user:(RLMUser *)user;
 
-/// Synchronously open a synced Realm and wait until the binding process has completed or failed.
-- (RLMRealm *)openRealmForURL:(NSURL *)url user:(RLMSyncUser *)user;
-
-/// Synchronously open a synced Realm and wait until the binding process has completed or failed.
-- (RLMRealm *)openRealmWithConfiguration:(RLMRealmConfiguration *)configuration;
-
-/// Synchronously open a synced Realm. Also run a block right after the Realm is created.
-- (RLMRealm *)openRealmForURL:(NSURL *)url
-                         user:(RLMSyncUser *)user
-             immediatelyBlock:(nullable void(^)(void))block;
-
-/// Synchronously open a synced Realm with encryption key and stop policy.
-/// Also run a block right after the Realm is created.
-- (RLMRealm *)openRealmForURL:(NSURL *)url
-                         user:(RLMSyncUser *)user
-                encryptionKey:(nullable NSData *)encryptionKey
-                   stopPolicy:(RLMSyncStopPolicy)stopPolicy
-             immediatelyBlock:(nullable void(^)(void))block;
-
-/// Synchronously open a synced Realm and wait until the binding process has completed or failed.
-/// Also run a block right after the Realm is created.
-- (RLMRealm *)openRealmWithConfiguration:(RLMRealmConfiguration *)configuration
-                        immediatelyBlock:(nullable void(^)(void))block;
-;
-
-/// Immediately open a synced Realm.
-- (RLMRealm *)immediatelyOpenRealmForURL:(NSURL *)url user:(RLMSyncUser *)user;
-
-/// Immediately open a synced Realm with encryption key and stop policy.
-- (RLMRealm *)immediatelyOpenRealmForURL:(NSURL *)url
-                                    user:(RLMSyncUser *)user
+/// Synchronously open a synced Realm with encryption key and stop policy and wait for downloads.
+- (RLMRealm *)openRealmForPartitionValue:(nullable id<RLMBSON>)partitionValue
+                                    user:(RLMUser *)user
                            encryptionKey:(nullable NSData *)encryptionKey
                               stopPolicy:(RLMSyncStopPolicy)stopPolicy;
 
+/// Synchronously open a synced Realm.
+- (RLMRealm *)openRealmWithConfiguration:(RLMRealmConfiguration *)configuration;
+
+/// Immediately open a synced Realm.
+- (RLMRealm *)immediatelyOpenRealmForPartitionValue:(nullable id<RLMBSON>)partitionValue user:(RLMUser *)user;
+
+/// Immediately open a synced Realm with encryption key and stop policy.
+- (RLMRealm *)immediatelyOpenRealmForPartitionValue:(nullable id<RLMBSON>)partitionValue
+                                               user:(RLMUser *)user
+                                      encryptionKey:(nullable NSData *)encryptionKey
+                                         stopPolicy:(RLMSyncStopPolicy)stopPolicy;
+
 /// Synchronously create, log in, and return a user.
-- (RLMSyncUser *)logInUserForCredentials:(RLMSyncCredentials *)credentials
-                                  server:(NSURL *)url;
+- (RLMUser *)logInUserForCredentials:(RLMCredentials *)credentials;
+- (RLMUser *)logInUserForCredentials:(RLMCredentials *)credentials app:(RLMApp *)app;
 
-/// Create and log in an admin user.
-- (RLMSyncUser *)createAdminUserForURL:(NSURL *)url username:(NSString *)username;
+/// Synchronously, log out.
+- (void)logOutUser:(RLMUser *)user;
 
-/// Add a number of objects to a Realm.
-- (void)addSyncObjectsToRealm:(RLMRealm *)realm descriptions:(NSArray<NSString *> *)descriptions;
+- (void)addPersonsToRealm:(RLMRealm *)realm persons:(NSArray<Person *> *)persons;
 
 /// Synchronously wait for downloads to complete for any number of Realms, and then check their `SyncObject` counts.
-- (void)waitForDownloadsForUser:(RLMSyncUser *)user
+- (void)waitForDownloadsForUser:(RLMUser *)user
                          realms:(NSArray<RLMRealm *> *)realms
-                      realmURLs:(NSArray<NSURL *> *)realmURLs
+                partitionValues:(NSArray<NSString *> *)partitionValues
                  expectedCounts:(NSArray<NSNumber *> *)counts;
-
-/// "Prime" the sync manager to signal the given semaphore the next time a session is bound. This method should be
-/// called right before a Realm is opened if that Realm's session is the one to be monitored.
-- (void)primeSyncManagerWithSemaphore:(nullable dispatch_semaphore_t)semaphore;
 
 /// Wait for downloads to complete; drop any error.
 - (void)waitForDownloadsForRealm:(RLMRealm *)realm;
@@ -117,13 +121,24 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)waitForUploadsForRealm:(RLMRealm *)realm error:(NSError **)error;
 
 /// Wait for downloads to complete while spinning the runloop. This method uses expectations.
-- (void)waitForDownloadsForUser:(RLMSyncUser *)user
-                            url:(NSURL *)url
+- (void)waitForDownloadsForUser:(RLMUser *)user
+                 partitionValue:(NSString *)partitionValue
                     expectation:(nullable XCTestExpectation *)expectation
                           error:(NSError **)error;
 
+/// Manually set the access token for a user. Used for testing invalid token conditions.
+- (void)manuallySetAccessTokenForUser:(RLMUser *)user value:(NSString *)tokenValue;
+
 /// Manually set the refresh token for a user. Used for testing invalid token conditions.
-- (void)manuallySetRefreshTokenForUser:(RLMSyncUser *)user value:(NSString *)tokenValue;
+- (void)manuallySetRefreshTokenForUser:(RLMUser *)user value:(NSString *)tokenValue;
+
+- (void)resetSyncManager;
+
+- (NSString *)badAccessToken;
+
+- (void)cleanupRemoteDocuments:(RLMMongoCollection *)collection;
+
+- (nonnull NSURL *)clientDataRoot;
 
 @end
 
@@ -137,9 +152,10 @@ NS_ASSUME_NONNULL_END
 }
 
 #define CHECK_COUNT(d_count, macro_object_type, macro_realm) \
-{                                                                                                       \
-    [macro_realm refresh];                                                                              \
-    NSInteger c = [macro_object_type allObjectsInRealm:macro_realm].count;                              \
-    NSString *w = self.isParent ? @"parent" : @"child";                                                 \
-    XCTAssert(d_count == c, @"Expected %@ items, but actually got %@ (%@)", @(d_count), @(c), w);       \
+{                                                                                                         \
+    [macro_realm refresh];                                                                                \
+    RLMResults *r = [macro_object_type allObjectsInRealm:macro_realm];                                    \
+    NSInteger c = r.count;                                                                                \
+    NSString *w = self.isParent ? @"parent" : @"child";                                                   \
+    XCTAssert(d_count == c, @"Expected %@ items, but actually got %@ (%@) (%@)", @(d_count), @(c), r, w); \
 }

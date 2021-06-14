@@ -19,7 +19,12 @@
 import XCTest
 import Realm
 import Realm.Private
+
+#if canImport(RealmTestSupport)
 import RealmTestSupport
+#endif
+
+#if os(macOS)
 
 class InitLinkedToClass: RLMObject {
     @objc dynamic var value: SwiftRLMIntObject! = SwiftRLMIntObject(value: [0])
@@ -104,11 +109,20 @@ class InitAppendsToArrayValue : RLMObject {
     @objc dynamic var value: Int = 0
 }
 
+class NoProps: FakeObject {
+    // no @objc properties
+}
+
 class SwiftRLMSchemaTests: RLMMultiProcessTestCase {
     func testWorksAtAll() {
         if isParent {
             XCTAssertEqual(0, runChildAndWait(), "Tests in child process failed")
         }
+    }
+
+    func testShouldRaiseObjectWithoutProperties() {
+        assertThrowsWithReasonMatching(RLMObjectSchema(forObjectClass: NoProps.self),
+                                       "No properties are defined for 'NoProps'. Did you remember to mark them with '@objc' in your model?")
     }
 
     func testSchemaInitWithLinkedToObjectUsingInitWithValue() {
@@ -208,9 +222,9 @@ class SwiftRLMSchemaTests: RLMMultiProcessTestCase {
     }
 
     func testInvalidObjectTypeForRLMArray() {
-        RLMSetTreatFakeObjectAsRLMObject(true)
         assertThrowsWithReasonMatching(RLMObjectSchema(forObjectClass: InvalidArrayType.self),
                                        "RLMArray\\<invalid class\\>")
-        RLMSetTreatFakeObjectAsRLMObject(false)
     }
 }
+
+#endif

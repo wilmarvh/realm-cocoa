@@ -471,7 +471,7 @@
     XCTAssertEqual((NSUInteger)NSNotFound, [results indexOfObject:po2]);
     XCTAssertEqual((NSUInteger)NSNotFound, [results indexOfObject:unmanaged]);
     RLMAssertThrowsWithReasonMatching([results indexOfObject:so], @"StringObject.*EmployeeObject");
-    RLMAssertThrowsWithReasonMatching([results indexOfObject:deletedObject], @"Object has been invalidated");
+    RLMAssertThrowsWithReasonMatching([results indexOfObject:deletedObject], @"Object has been deleted or invalidated");
 
     [results lastObject]; // Force to tableview mode
     XCTAssertEqual(0U, [results indexOfObject:po1]);
@@ -479,7 +479,7 @@
     XCTAssertEqual((NSUInteger)NSNotFound, [results indexOfObject:po2]);
     XCTAssertEqual((NSUInteger)NSNotFound, [results indexOfObject:unmanaged]);
     RLMAssertThrowsWithReasonMatching([results indexOfObject:so], @"StringObject.*EmployeeObject");
-    RLMAssertThrowsWithReasonMatching([results indexOfObject:deletedObject], @"Object has been invalidated");
+    RLMAssertThrowsWithReasonMatching([results indexOfObject:deletedObject], @"Object has been deleted or invalidated");
 
     // reverse order from sort
     results = [[EmployeeObject objectsWhere:@"hired = YES"] sortedResultsUsingKeyPath:@"age" ascending:YES];
@@ -488,7 +488,7 @@
     XCTAssertEqual((NSUInteger)NSNotFound, [results indexOfObject:po2]);
     XCTAssertEqual((NSUInteger)NSNotFound, [results indexOfObject:unmanaged]);
     RLMAssertThrowsWithReasonMatching([results indexOfObject:so], @"StringObject.*EmployeeObject");
-    RLMAssertThrowsWithReasonMatching([results indexOfObject:deletedObject], @"Object has been invalidated");
+    RLMAssertThrowsWithReasonMatching([results indexOfObject:deletedObject], @"Object has been deleted or invalidated");
 
     results = [EmployeeObject allObjects];
     XCTAssertEqual(0U, [results indexOfObject:po1]);
@@ -496,7 +496,7 @@
     XCTAssertEqual(2U, [results indexOfObject:po3]);
     XCTAssertEqual((NSUInteger)NSNotFound, [results indexOfObject:unmanaged]);
     RLMAssertThrowsWithReasonMatching([results indexOfObject:so], @"StringObject.*EmployeeObject");
-    RLMAssertThrowsWithReasonMatching([results indexOfObject:deletedObject], @"Object has been invalidated");
+    RLMAssertThrowsWithReasonMatching([results indexOfObject:deletedObject], @"Object has been deleted or invalidated");
 }
 
 - (void)testIndexOfObjectWhere
@@ -910,7 +910,7 @@ static vm_size_t get_resident_size() {
     XCTAssertNoThrow([results averageOfProperty:@"intCol"]);
     XCTAssertNoThrow(results[0]);
     XCTAssertNoThrow([results valueForKey:@"intCol"]);
-    XCTAssertNoThrow({for (__unused id obj in results);});
+    XCTAssertNoThrow(({for (__unused id obj in results);}));
 
     [realm invalidate];
 
@@ -931,7 +931,7 @@ static vm_size_t get_resident_size() {
     XCTAssertThrows([results averageOfProperty:@"intCol"]);
     XCTAssertThrows(results[0]);
     XCTAssertThrows([results valueForKey:@"intCol"]);
-    XCTAssertThrows({for (__unused id obj in results);});
+    XCTAssertThrows(({for (__unused id obj in results);}));
 }
 
 - (void)testResultsDependingOnDeletedLinkView {
@@ -1118,6 +1118,78 @@ static vm_size_t get_resident_size() {
     XCTAssertThrows([[AllTypesObject allObjects] distinctResultsUsingKeyPaths:@[@"linkingObjectsCol"]]);
     XCTAssertThrows([[AllTypesObject allObjects] distinctResultsUsingKeyPaths:@[@"objectCol"]]);
     XCTAssertThrows([[AggregateArrayObject allObjects] distinctResultsUsingKeyPaths:@[@"array"]]);
+}
+
+#pragma mark - Frozen Results
+
+static RLMResults<IntObject *> *testResults() {
+    RLMRealm *realm = [RLMRealm defaultRealm];
+    [realm transactionWithBlock:^{
+        [IntObject createInDefaultRealmWithValue:@[@0]];
+        [IntObject createInDefaultRealmWithValue:@[@1]];
+        [IntObject createInDefaultRealmWithValue:@[@2]];
+    }];
+
+    return [IntObject allObjects];
+}
+
+- (void)testIsFrozen {
+    RLMResults *unfrozen = testResults();
+    RLMResults *frozen = [unfrozen freeze];
+    XCTAssertFalse(unfrozen.isFrozen);
+    XCTAssertTrue(frozen.isFrozen);
+}
+
+- (void)testFreezingFrozenObjectReturnsSelf {
+    RLMResults *results = testResults();
+    RLMResults *frozen = [results freeze];
+    XCTAssertNotEqual(results, frozen);
+    XCTAssertNotEqual(results.freeze, frozen);
+    XCTAssertEqual(frozen, frozen.freeze);
+}
+
+- (void)testFreezeFromWrongThread {
+    RLMResults *results = testResults();
+    [self dispatchAsyncAndWait:^{
+        RLMAssertThrowsWithReason([results freeze],
+                                  @"Realm accessed from incorrect thread");
+    }];
+}
+
+- (void)testAccessFrozenResultsFromDifferentThread {
+    RLMResults *frozen = [testResults() freeze];
+    [self dispatchAsyncAndWait:^{
+        XCTAssertEqualObjects([frozen valueForKey:@"intCol"], (@[@0, @1, @2]));
+    }];
+}
+
+- (void)testObserveFrozenResults {
+    RLMResults *frozen = [testResults() freeze];
+    id block = ^(__unused BOOL deleted, __unused NSArray *changes, __unused NSError *error) {};
+    RLMAssertThrowsWithReason([frozen addNotificationBlock:block],
+                              @"Frozen Realms do not change and do not have change notifications.");
+}
+
+- (void)testQueryFrozenResults {
+    RLMResults *frozen = [testResults() freeze];
+    XCTAssertEqualObjects([[frozen objectsWhere:@"intCol > 0"] valueForKey:@"intCol"], (@[@1, @2]));
+}
+
+- (void)testFrozenResultsDoNotUpdate {
+    RLMResults *frozen = [testResults() freeze];
+    RLMRealm *realm = [RLMRealm defaultRealm];
+    [realm transactionWithBlock:^{
+        [IntObject createInDefaultRealmWithValue:@[@3]];
+    }];
+    XCTAssertEqual(frozen.count, 3);
+    XCTAssertEqual([frozen objectsWhere:@"intCol = 3"].count, 0);
+}
+
+- (void)testMultithreadedFrozenResultsEnumeration {
+    RLMResults *frozen = [testResults() freeze];
+    dispatch_apply(100, DISPATCH_APPLY_AUTO, ^(__unused size_t i) {
+        for (__unused id obj in frozen);
+    });
 }
 
 @end

@@ -80,6 +80,9 @@ static BOOL encryptTests() {
     // re-enabled and we need it enabled for performance tests
     RLMDisableSyncToDisk();
 #endif
+    // Don't bother disabling backups on our non-Realm files because it takes
+    // a while and we're going to delete them anyway.
+    RLMSetSkipBackupAttribute(false);
 
     if (!getenv("RLMProcessIsChild")) {
         [self preinitializeSchema];
@@ -127,12 +130,16 @@ static BOOL encryptTests() {
     deleteOrThrow([fileURL URLByAppendingPathExtension:@"note"]);
 }
 
+- (BOOL)encryptTests {
+    return encryptTests();
+}
+
 - (void)invokeTest {
     @autoreleasepool {
         [self deleteFiles];
 
-        if (encryptTests()) {
-            RLMRealmConfiguration *configuration = [RLMRealmConfiguration defaultConfiguration];
+        if (self.encryptTests) {
+            RLMRealmConfiguration *configuration = [RLMRealmConfiguration rawDefaultConfiguration];
             configuration.encryptionKey = RLMGenerateKey();
         }
     }
@@ -199,11 +206,15 @@ static BOOL encryptTests() {
     dispatch_sync(queue, ^{});
 }
 
-- (void)dispatchAsync:(dispatch_block_t)block {
+- (dispatch_queue_t)bgQueue {
     if (!_bgQueue) {
         _bgQueue = dispatch_queue_create("test background queue", 0);
     }
-    dispatch_async(_bgQueue, ^{
+    return _bgQueue;
+}
+
+- (void)dispatchAsync:(dispatch_block_t)block {
+    dispatch_async(self.bgQueue, ^{
         @autoreleasepool {
             block();
         }

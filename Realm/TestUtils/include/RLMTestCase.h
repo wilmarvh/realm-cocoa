@@ -51,9 +51,12 @@ NSData *RLMGenerateKey(void);
 - (void)waitForNotification:(RLMNotification)expectedNote realm:(RLMRealm *)realm block:(dispatch_block_t)block;
 
 - (nullable id)nonLiteralNil;
+- (BOOL)encryptTests;
 
 - (void)dispatchAsync:(dispatch_block_t)block;
 - (void)dispatchAsyncAndWait:(dispatch_block_t)block;
+
+@property (nonatomic, readonly) dispatch_queue_t bgQueue;
 
 @end
 

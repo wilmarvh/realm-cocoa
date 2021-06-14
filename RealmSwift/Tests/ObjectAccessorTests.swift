@@ -34,6 +34,34 @@ class ObjectAccessorTests: TestCase {
         object.intCol = 1
         XCTAssertEqual(object.intCol, 1)
 
+        object.int8Col = -1
+        XCTAssertEqual(object.int8Col, -1)
+        object.int8Col = 0
+        XCTAssertEqual(object.int8Col, 0)
+        object.int8Col = 1
+        XCTAssertEqual(object.int8Col, 1)
+
+        object.int16Col = -1
+        XCTAssertEqual(object.int16Col, -1)
+        object.int16Col = 0
+        XCTAssertEqual(object.int16Col, 0)
+        object.int16Col = 1
+        XCTAssertEqual(object.int16Col, 1)
+
+        object.int32Col = -1
+        XCTAssertEqual(object.int32Col, -1)
+        object.int32Col = 0
+        XCTAssertEqual(object.int32Col, 0)
+        object.int32Col = 1
+        XCTAssertEqual(object.int32Col, 1)
+
+        object.int64Col = -1
+        XCTAssertEqual(object.int64Col, -1)
+        object.int64Col = 0
+        XCTAssertEqual(object.int64Col, 0)
+        object.int64Col = 1
+        XCTAssertEqual(object.int64Col, 1)
+
         object.floatCol = 20
         XCTAssertEqual(object.floatCol, 20 as Float)
         object.floatCol = 20.2
@@ -64,9 +92,30 @@ class ObjectAccessorTests: TestCase {
 
         object.objectCol = SwiftBoolObject(value: [true])
         XCTAssertEqual(object.objectCol!.boolCol, true)
+
+        object.intEnumCol = .value1
+        XCTAssertEqual(object.intEnumCol, .value1)
+        object.intEnumCol = .value2
+        XCTAssertEqual(object.intEnumCol, .value2)
+
+        object.decimalCol = "inf"
+        XCTAssertEqual(object.decimalCol, "inf")
+        object.decimalCol = "-inf"
+        XCTAssertEqual(object.decimalCol, "-inf")
+        object.decimalCol = "0"
+        XCTAssertEqual(object.decimalCol, "0")
+        object.decimalCol = "nan"
+        XCTAssertTrue(object.decimalCol.isNaN)
+
+        let oid1 = ObjectId("1234567890ab1234567890ab")
+        let oid2 = ObjectId("abcdef123456abcdef123456")
+        object.objectIdCol = oid1
+        XCTAssertEqual(object.objectIdCol, oid1)
+        object.objectIdCol = oid2
+        XCTAssertEqual(object.objectIdCol, oid2)
     }
 
-    func testStandaloneAccessors() {
+    func testUnmanagedAccessors() {
         let object = SwiftObject()
         setAndTestAllProperties(object)
 
@@ -74,7 +123,7 @@ class ObjectAccessorTests: TestCase {
         setAndTestAllOptionalProperties(optionalObject)
     }
 
-    func testPersistedAccessors() {
+    func testManagedAccessors() {
         let realm = try! Realm()
         realm.beginWrite()
         let object = realm.create(SwiftObject.self)
@@ -328,6 +377,13 @@ class ObjectAccessorTests: TestCase {
         XCTAssertEqual(object.optObjectCol!.boolCol, true)
         object.optObjectCol = nil
         XCTAssertNil(object.optObjectCol)
+
+        object.optEnumCol.value = .value1
+        XCTAssertEqual(object.optEnumCol.value, .value1)
+        object.optEnumCol.value = .value2
+        XCTAssertEqual(object.optEnumCol.value, .value2)
+        object.optEnumCol.value = nil
+        XCTAssertNil(object.optEnumCol.value)
     }
 
     func testLinkingObjectsDynamicGet() {
@@ -447,5 +503,28 @@ class ObjectAccessorTests: TestCase {
             XCTAssertEqual(realm.objects(SwiftOptionalObject.self).first!.optIntCol.value, nil)
             XCTAssertEqual(Array(realm.objects(SwiftListObject.self).first!.int), [])
         }
+    }
+
+    func testSetEmbeddedLink() {
+        let realm = try! Realm()
+        realm.beginWrite()
+
+        let parent = EmbeddedParentObject()
+        realm.add(parent)
+
+        let child1 = EmbeddedTreeObject1()
+        parent.object = child1
+        XCTAssertEqual(child1.realm, realm)
+        XCTAssertNoThrow(parent.object = child1)
+
+        let child2 = EmbeddedTreeObject1()
+        parent.object = child2
+        XCTAssertEqual(child1.realm, realm)
+        XCTAssertTrue(child1.isInvalidated)
+
+        let child3 = EmbeddedTreeObject1()
+        parent.array.append(child3)
+        assertThrows(parent.object = child3,
+                     reason: "Can't set link to existing managed embedded object")
     }
 }

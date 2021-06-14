@@ -91,9 +91,9 @@
 			children = (
 				E804A9581AFAB8C100CCAE65 /* CocoaPodsExample */,
 				E804A96E1AFAB8C100CCAE65 /* CocoaPodsExampleTests */,
-				E804A9571AFAB8C100CCAE65 /* Products */,
-				0515F0ED02DFB6BAE60A31F6 /* Pods */,
 				37FB61E2D478C92E6DCBB632 /* Frameworks */,
+				0515F0ED02DFB6BAE60A31F6 /* Pods */,
+				E804A9571AFAB8C100CCAE65 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
@@ -109,12 +109,12 @@
 		E804A9581AFAB8C100CCAE65 /* CocoaPodsExample */ = {
 			isa = PBXGroup;
 			children = (
+				E804A9591AFAB8C100CCAE65 /* Supporting Files */,
 				E804A95B1AFAB8C100CCAE65 /* AppDelegate.swift */,
-				E804A95D1AFAB8C100CCAE65 /* ViewController.swift */,
-				E804A95F1AFAB8C100CCAE65 /* Main.storyboard */,
 				E804A9621AFAB8C100CCAE65 /* Images.xcassets */,
 				E804A9641AFAB8C100CCAE65 /* LaunchScreen.xib */,
-				E804A9591AFAB8C100CCAE65 /* Supporting Files */,
+				E804A95F1AFAB8C100CCAE65 /* Main.storyboard */,
+				E804A95D1AFAB8C100CCAE65 /* ViewController.swift */,
 			);
 			path = CocoaPodsExample;
 			sourceTree = "<group>";
@@ -130,8 +130,8 @@
 		E804A96E1AFAB8C100CCAE65 /* CocoaPodsExampleTests */ = {
 			isa = PBXGroup;
 			children = (
-				E804A9711AFAB8C100CCAE65 /* CocoaPodsExampleTests.swift */,
 				E804A96F1AFAB8C100CCAE65 /* Supporting Files */,
+				E804A9711AFAB8C100CCAE65 /* CocoaPodsExampleTests.swift */,
 			);
 			path = CocoaPodsExampleTests;
 			sourceTree = "<group>";
@@ -193,7 +193,7 @@
 			isa = PBXProject;
 			attributes = {
 				LastSwiftUpdateCheck = 0710;
-				LastUpgradeCheck = 1020;
+				LastUpgradeCheck = 1300;
 				ORGANIZATIONNAME = Realm;
 				TargetAttributes = {
 					E804A9551AFAB8C000CCAE65 = {
@@ -212,6 +212,7 @@
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (
+				English,
 				en,
 				Base,
 			);
@@ -231,9 +232,9 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E804A9611AFAB8C100CCAE65 /* Main.storyboard in Resources */,
-				E804A9661AFAB8C100CCAE65 /* LaunchScreen.xib in Resources */,
 				E804A9631AFAB8C100CCAE65 /* Images.xcassets in Resources */,
+				E804A9661AFAB8C100CCAE65 /* LaunchScreen.xib in Resources */,
+				E804A9611AFAB8C100CCAE65 /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -330,8 +331,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E804A95E1AFAB8C100CCAE65 /* ViewController.swift in Sources */,
 				E804A95C1AFAB8C100CCAE65 /* AppDelegate.swift in Sources */,
+				E804A95E1AFAB8C100CCAE65 /* ViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -395,6 +396,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+                               CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -420,7 +422,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 8.3;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -450,6 +452,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+                               CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -468,7 +471,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 8.3;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
@@ -507,10 +510,6 @@
 			baseConfigurationReference = 71E30B1C52460F5A680653A0 /* Pods-CocoaPodsExampleTests.debug.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(SDKROOT)/Developer/Library/Frameworks",
-					"$(inherited)",
-				);
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
 					"$(inherited)",
@@ -529,10 +528,6 @@
 			baseConfigurationReference = 2ADC9100D18B2BAC30B680DD /* Pods-CocoaPodsExampleTests.release.xcconfig */;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(SDKROOT)/Developer/Library/Frameworks",
-					"$(inherited)",
-				);
 				INFOPLIST_FILE = CocoaPodsExampleTests/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "io.realm.$(PRODUCT_NAME:rfc1034identifier)";

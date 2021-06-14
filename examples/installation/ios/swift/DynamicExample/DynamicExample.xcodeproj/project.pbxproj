@@ -7,10 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		C07E5D871B15083F00ED625C /* Realm.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C07E5D861B15083F00ED625C /* Realm.framework */; };
-		C07E5D891B15084800ED625C /* Realm.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C07E5D861B15083F00ED625C /* Realm.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		E8AD59E61AFAB62100E79784 /* RealmSwift.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E8AD59E51AFAB62100E79784 /* RealmSwift.framework */; };
-		E8AD59E71AFAB62100E79784 /* RealmSwift.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E8AD59E51AFAB62100E79784 /* RealmSwift.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		C07E5D871B15083F00ED625C /* Realm.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = C07E5D861B15083F00ED625C /* Realm.xcframework */; };
+		C07E5D891B15084800ED625C /* Realm.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C07E5D861B15083F00ED625C /* Realm.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		E8AD59E61AFAB62100E79784 /* RealmSwift.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = E8AD59E51AFAB62100E79784 /* RealmSwift.xcframework */; };
+		E8AD59E71AFAB62100E79784 /* RealmSwift.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = E8AD59E51AFAB62100E79784 /* RealmSwift.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		E8E060C11AFAB5EB00484DEE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8E060C01AFAB5EB00484DEE /* AppDelegate.swift */; };
 		E8E060C31AFAB5EB00484DEE /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8E060C21AFAB5EB00484DEE /* ViewController.swift */; };
 		E8E060C61AFAB5EB00484DEE /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = E8E060C41AFAB5EB00484DEE /* Main.storyboard */; };
@@ -36,8 +36,8 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				C07E5D891B15084800ED625C /* Realm.framework in Embed Frameworks */,
-				E8AD59E71AFAB62100E79784 /* RealmSwift.framework in Embed Frameworks */,
+				C07E5D891B15084800ED625C /* Realm.xcframework in Embed Frameworks */,
+				E8AD59E71AFAB62100E79784 /* RealmSwift.xcframework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -45,8 +45,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		C07E5D861B15083F00ED625C /* Realm.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Realm.framework; path = "../../../realm-swift-latest/ios/swift-10.2.1/Realm.framework"; sourceTree = "<group>"; };
-		E8AD59E51AFAB62100E79784 /* RealmSwift.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = RealmSwift.framework; path = "../../../realm-swift-latest/ios/swift-10.2.1/RealmSwift.framework"; sourceTree = "<group>"; };
+		C07E5D861B15083F00ED625C /* Realm.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = Realm.xcframework; path = "../../../realm-swift-latest/Realm.xcframework"; sourceTree = "<group>"; };
+		E8AD59E51AFAB62100E79784 /* RealmSwift.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = RealmSwift.xcframework; path = "../../../realm-swift-latest/RealmSwift.xcframework"; sourceTree = "<group>"; };
 		E8E060BB1AFAB5EB00484DEE /* DynamicExample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DynamicExample.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E8E060BF1AFAB5EB00484DEE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		E8E060C01AFAB5EB00484DEE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -64,8 +64,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C07E5D871B15083F00ED625C /* Realm.framework in Frameworks */,
-				E8AD59E61AFAB62100E79784 /* RealmSwift.framework in Frameworks */,
+				C07E5D871B15083F00ED625C /* Realm.xcframework in Frameworks */,
+				E8AD59E61AFAB62100E79784 /* RealmSwift.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -82,11 +82,11 @@
 		E8E060B21AFAB5EB00484DEE = {
 			isa = PBXGroup;
 			children = (
-				C07E5D861B15083F00ED625C /* Realm.framework */,
-				E8AD59E51AFAB62100E79784 /* RealmSwift.framework */,
 				E8E060BD1AFAB5EB00484DEE /* DynamicExample */,
 				E8E060D31AFAB5EB00484DEE /* DynamicExampleTests */,
 				E8E060BC1AFAB5EB00484DEE /* Products */,
+				C07E5D861B15083F00ED625C /* Realm.xcframework */,
+				E8AD59E51AFAB62100E79784 /* RealmSwift.xcframework */,
 			);
 			sourceTree = "<group>";
 		};
@@ -102,12 +102,12 @@
 		E8E060BD1AFAB5EB00484DEE /* DynamicExample */ = {
 			isa = PBXGroup;
 			children = (
+				E8E060BE1AFAB5EB00484DEE /* Supporting Files */,
 				E8E060C01AFAB5EB00484DEE /* AppDelegate.swift */,
-				E8E060C21AFAB5EB00484DEE /* ViewController.swift */,
-				E8E060C41AFAB5EB00484DEE /* Main.storyboard */,
 				E8E060C71AFAB5EB00484DEE /* Images.xcassets */,
 				E8E060C91AFAB5EB00484DEE /* LaunchScreen.xib */,
-				E8E060BE1AFAB5EB00484DEE /* Supporting Files */,
+				E8E060C41AFAB5EB00484DEE /* Main.storyboard */,
+				E8E060C21AFAB5EB00484DEE /* ViewController.swift */,
 			);
 			path = DynamicExample;
 			sourceTree = "<group>";
@@ -123,8 +123,8 @@
 		E8E060D31AFAB5EB00484DEE /* DynamicExampleTests */ = {
 			isa = PBXGroup;
 			children = (
-				E8E060D61AFAB5EB00484DEE /* DynamicExampleTests.swift */,
 				E8E060D41AFAB5EB00484DEE /* Supporting Files */,
+				E8E060D61AFAB5EB00484DEE /* DynamicExampleTests.swift */,
 			);
 			path = DynamicExampleTests;
 			sourceTree = "<group>";
@@ -148,7 +148,6 @@
 				E8E060B81AFAB5EB00484DEE /* Frameworks */,
 				E8E060B91AFAB5EB00484DEE /* Resources */,
 				E8AD59E81AFAB62100E79784 /* Embed Frameworks */,
-				C07E5D8A1B150F4900ED625C /* Strip Framework Architectures */,
 			);
 			buildRules = (
 			);
@@ -184,7 +183,7 @@
 			isa = PBXProject;
 			attributes = {
 				LastSwiftUpdateCheck = 0710;
-				LastUpgradeCheck = 1020;
+				LastUpgradeCheck = 1300;
 				ORGANIZATIONNAME = Realm;
 				TargetAttributes = {
 					E8E060BA1AFAB5EB00484DEE = {
@@ -203,6 +202,7 @@
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (
+				English,
 				en,
 				Base,
 			);
@@ -222,9 +222,9 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E8E060C61AFAB5EB00484DEE /* Main.storyboard in Resources */,
-				E8E060CB1AFAB5EB00484DEE /* LaunchScreen.xib in Resources */,
 				E8E060C81AFAB5EB00484DEE /* Images.xcassets in Resources */,
+				E8E060CB1AFAB5EB00484DEE /* LaunchScreen.xib in Resources */,
+				E8E060C61AFAB5EB00484DEE /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -237,31 +237,13 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
-/* Begin PBXShellScriptBuildPhase section */
-		C07E5D8A1B150F4900ED625C /* Strip Framework Architectures */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-			);
-			name = "Strip Framework Architectures";
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "bash \"${BUILT_PRODUCTS_DIR}/${FRAMEWORKS_FOLDER_PATH}/Realm.framework/strip-frameworks.sh\"";
-			showEnvVarsInLog = 0;
-		};
-/* End PBXShellScriptBuildPhase section */
-
 /* Begin PBXSourcesBuildPhase section */
 		E8E060B71AFAB5EB00484DEE /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E8E060C31AFAB5EB00484DEE /* ViewController.swift in Sources */,
 				E8E060C11AFAB5EB00484DEE /* AppDelegate.swift in Sources */,
+				E8E060C31AFAB5EB00484DEE /* ViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -325,6 +307,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -335,7 +318,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				FRAMEWORK_SEARCH_PATHS = "../../../realm-swift-latest/ios/swift-10.2.1";
+				FRAMEWORK_SEARCH_PATHS = "../../../realm-swift-latest/ios/swift-12.2";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -351,7 +334,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 8.3;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -381,6 +364,7 @@
 				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
@@ -391,7 +375,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				FRAMEWORK_SEARCH_PATHS = "../../../realm-swift-latest/ios/swift-10.2.1";
+				FRAMEWORK_SEARCH_PATHS = "../../../realm-swift-latest/ios/swift-12.2";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -400,7 +384,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 8.3;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";

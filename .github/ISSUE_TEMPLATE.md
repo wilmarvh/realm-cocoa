@@ -23,8 +23,8 @@ and the steps you have taken to reproduce it in as many details as possible.
 e.g. the stack trace of a crash
 -->
 
-## Steps to Reproduce
-<!--- What are steps we can follow to reproduce this issue? -->
+## Steps for others to Reproduce
+<!--- What are steps OTHERS can follow to reproduce this issue? -->
 
 ## Code Sample
 <!---
@@ -41,8 +41,6 @@ Full Xcode projects that we can compile ourselves are ideal!
 which will help determining some of these versions.
 -->
 Realm framework version: ?
-
-Realm Object Server version: ?
 
 Xcode version: ?
 

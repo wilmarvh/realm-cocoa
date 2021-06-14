@@ -16,7 +16,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-// swiftlint:disable type_name identifier_name statement_position cyclomatic_complexity
+// swiftlint:disable type_name identifier_name cyclomatic_complexity
 
 import XCTest
 import RealmSwift
@@ -25,21 +25,36 @@ protocol ObjectFactory {
     static func isManaged() -> Bool
 }
 
-final class ManagedObjectFactory: ObjectFactory {
+struct ManagedObjectFactory: ObjectFactory {
     static func isManaged() -> Bool { return true }
 }
-final class UnmanagedObjectFactory: ObjectFactory {
+struct UnmanagedObjectFactory: ObjectFactory {
     static func isManaged() -> Bool { return false }
 }
 
 protocol ValueFactory {
     associatedtype T: RealmCollectionValue
     associatedtype W: RealmCollectionValue = T
+    associatedtype AverageType: AddableType = Double
     static func array(_ obj: SwiftListObject) -> List<T>
     static func values() -> [T]
+    static func doubleValue(_ value: AverageType) -> Double
+    static func doubleValue(t value: T) -> Double
+    static func doubleValue(w value: W) -> Double
+}
+extension ValueFactory {
+    static func doubleValue(_ value: Double) -> Double {
+        return value
+    }
+    static func doubleValue(t value: T) -> Double {
+        return (value as! NSNumber).doubleValue
+    }
+    static func doubleValue(w value: W) -> Double {
+        return (value as! NSNumber).doubleValue
+    }
 }
 
-final class IntFactory: ValueFactory {
+struct IntFactory: ValueFactory {
     static func array(_ obj: SwiftListObject) -> List<Int> {
         return obj.int
     }
@@ -49,7 +64,7 @@ final class IntFactory: ValueFactory {
     }
 }
 
-final class Int8Factory: ValueFactory {
+struct Int8Factory: ValueFactory {
     static func array(_ obj: SwiftListObject) -> List<Int8> {
         return obj.int8
     }
@@ -59,7 +74,7 @@ final class Int8Factory: ValueFactory {
     }
 }
 
-final class Int16Factory: ValueFactory {
+struct Int16Factory: ValueFactory {
     static func array(_ obj: SwiftListObject) -> List<Int16> {
         return obj.int16
     }
@@ -69,7 +84,7 @@ final class Int16Factory: ValueFactory {
     }
 }
 
-final class Int32Factory: ValueFactory {
+struct Int32Factory: ValueFactory {
     static func array(_ obj: SwiftListObject) -> List<Int32> {
         return obj.int32
     }
@@ -79,7 +94,7 @@ final class Int32Factory: ValueFactory {
     }
 }
 
-final class Int64Factory: ValueFactory {
+struct Int64Factory: ValueFactory {
     static func array(_ obj: SwiftListObject) -> List<Int64> {
         return obj.int64
     }
@@ -89,7 +104,7 @@ final class Int64Factory: ValueFactory {
     }
 }
 
-final class FloatFactory: ValueFactory {
+struct FloatFactory: ValueFactory {
     static func array(_ obj: SwiftListObject) -> List<Float> {
         return obj.float
     }
@@ -99,7 +114,7 @@ final class FloatFactory: ValueFactory {
     }
 }
 
-final class DoubleFactory: ValueFactory {
+struct DoubleFactory: ValueFactory {
     static func array(_ obj: SwiftListObject) -> List<Double> {
         return obj.double
     }
@@ -109,7 +124,7 @@ final class DoubleFactory: ValueFactory {
     }
 }
 
-final class StringFactory: ValueFactory {
+struct StringFactory: ValueFactory {
     static func array(_ obj: SwiftListObject) -> List<String> {
         return obj.string
     }
@@ -119,7 +134,7 @@ final class StringFactory: ValueFactory {
     }
 }
 
-final class DataFactory: ValueFactory {
+struct DataFactory: ValueFactory {
     static func array(_ obj: SwiftListObject) -> List<Data> {
         return obj.data
     }
@@ -129,7 +144,7 @@ final class DataFactory: ValueFactory {
     }
 }
 
-final class DateFactory: ValueFactory {
+struct DateFactory: ValueFactory {
     static func array(_ obj: SwiftListObject) -> List<Date> {
         return obj.date
     }
@@ -139,7 +154,40 @@ final class DateFactory: ValueFactory {
     }
 }
 
-final class OptionalIntFactory: ValueFactory {
+struct DecimalFactory: ValueFactory {
+    typealias AverageType = Decimal128
+
+    static func array(_ obj: SwiftListObject) -> List<Decimal128> {
+        return obj.decimal
+    }
+
+    static func values() -> [Decimal128] {
+        return [Decimal128(number: 1), Decimal128(number: 2), Decimal128(number: 3)]
+    }
+
+    static func doubleValue(_ value: Decimal128) -> Double {
+        return value.doubleValue
+    }
+    static func doubleValue(t value: Decimal128) -> Double {
+        return value.doubleValue
+    }
+    static func doubleValue(w value: Decimal128) -> Double {
+        return value.doubleValue
+    }
+}
+
+struct ObjectIdFactory: ValueFactory {
+    static func array(_ obj: SwiftListObject) -> List<ObjectId> {
+        return obj.objectId
+    }
+
+    static private let _values = [ObjectId.generate(), ObjectId.generate(), ObjectId.generate()]
+    static func values() -> [ObjectId] {
+        return _values
+    }
+}
+
+struct OptionalIntFactory: ValueFactory {
     typealias W = Int
 
     static func array(_ obj: SwiftListObject) -> List<Int?> {
@@ -151,7 +199,7 @@ final class OptionalIntFactory: ValueFactory {
     }
 }
 
-final class OptionalInt8Factory: ValueFactory {
+struct OptionalInt8Factory: ValueFactory {
     typealias W = Int8
 
     static func array(_ obj: SwiftListObject) -> List<Int8?> {
@@ -163,7 +211,7 @@ final class OptionalInt8Factory: ValueFactory {
     }
 }
 
-final class OptionalInt16Factory: ValueFactory {
+struct OptionalInt16Factory: ValueFactory {
     typealias W = Int16
 
     static func array(_ obj: SwiftListObject) -> List<Int16?> {
@@ -175,7 +223,7 @@ final class OptionalInt16Factory: ValueFactory {
     }
 }
 
-final class OptionalInt32Factory: ValueFactory {
+struct OptionalInt32Factory: ValueFactory {
     typealias W = Int32
 
     static func array(_ obj: SwiftListObject) -> List<Int32?> {
@@ -187,7 +235,7 @@ final class OptionalInt32Factory: ValueFactory {
     }
 }
 
-final class OptionalInt64Factory: ValueFactory {
+struct OptionalInt64Factory: ValueFactory {
     typealias W = Int64
 
     static func array(_ obj: SwiftListObject) -> List<Int64?> {
@@ -199,7 +247,7 @@ final class OptionalInt64Factory: ValueFactory {
     }
 }
 
-final class OptionalFloatFactory: ValueFactory {
+struct OptionalFloatFactory: ValueFactory {
     typealias W = Float
 
     static func array(_ obj: SwiftListObject) -> List<Float?> {
@@ -211,7 +259,7 @@ final class OptionalFloatFactory: ValueFactory {
     }
 }
 
-final class OptionalDoubleFactory: ValueFactory {
+struct OptionalDoubleFactory: ValueFactory {
     typealias W = Double
 
     static func array(_ obj: SwiftListObject) -> List<Double?> {
@@ -223,7 +271,7 @@ final class OptionalDoubleFactory: ValueFactory {
     }
 }
 
-final class OptionalStringFactory: ValueFactory {
+struct OptionalStringFactory: ValueFactory {
     typealias W = String
 
     static func array(_ obj: SwiftListObject) -> List<String?> {
@@ -235,7 +283,7 @@ final class OptionalStringFactory: ValueFactory {
     }
 }
 
-final class OptionalDataFactory: ValueFactory {
+struct OptionalDataFactory: ValueFactory {
     typealias W = Data
 
     static func array(_ obj: SwiftListObject) -> List<Data?> {
@@ -247,7 +295,7 @@ final class OptionalDataFactory: ValueFactory {
     }
 }
 
-final class OptionalDateFactory: ValueFactory {
+struct OptionalDateFactory: ValueFactory {
     typealias W = Date
 
     static func array(_ obj: SwiftListObject) -> List<Date?> {
@@ -259,200 +307,50 @@ final class OptionalDateFactory: ValueFactory {
     }
 }
 
-// Older versions of swift only support three version components in top-level
-// #if, so this check to be done outside the class...
-#if swift(>=3.4) && (swift(>=4.1.50) || !swift(>=4))
-class EquatableTestCase: TestCase {
-    func assertEqualTo<T: Equatable>(_ expected: T, _ actual: T, fileName: StaticString = #file, lineNumber: UInt = #line) {
-        XCTAssertEqual(expected, actual, file: fileName, line: lineNumber)
+struct OptionalDecimalFactory: ValueFactory {
+    typealias W = Decimal128
+    typealias AverageType = Decimal128
+
+    static func array(_ obj: SwiftListObject) -> List<Decimal128?> {
+        return obj.decimalOpt
+    }
+
+    static func values() -> [Decimal128?] {
+        return [nil] + DecimalFactory.values().dropLast()
+    }
+
+    static func doubleValue(_ value: Decimal128) -> Double {
+        return value.doubleValue
+    }
+    static func doubleValue(t value: Decimal128?) -> Double {
+        return value!.doubleValue
+    }
+    static func doubleValue(w value: Decimal128) -> Double {
+        return value.doubleValue
     }
 }
-#else
-class EquatableTestCase: TestCase {
-    // writing value as! Int? gives "cannot downcast from 'T' to a more optional type 'Optional<Int>'"
-    // but doing this nonsense works
-    func cast<T, U>(_ value: T) -> U {
-        return value as! U
+
+struct OptionalObjectIdFactory: ValueFactory {
+    typealias W = ObjectId
+
+    static func array(_ obj: SwiftListObject) -> List<ObjectId?> {
+        return obj.objectIdOpt
     }
 
-    // No conditional conformance means that Optional<T: Equatable> can't
-    // itself conform to Equatable
-    func assertEqualTo<T>(_ expected: T, _ actual: T, fileName: StaticString = #file, lineNumber: UInt = #line) {
-        if T.self is Int.Type {
-            XCTAssertEqual(expected as! Int, actual as! Int, file: fileName, line: lineNumber)
-        }
-        else if T.self is Float.Type {
-            XCTAssertEqual(expected as! Float, actual as! Float, file: fileName, line: lineNumber)
-        }
-        else if T.self is Double.Type {
-            XCTAssertEqual(expected as! Double, actual as! Double, file: fileName, line: lineNumber)
-        }
-        else if T.self is Bool.Type {
-            XCTAssertEqual(expected as! Bool, actual as! Bool, file: fileName, line: lineNumber)
-        }
-        else if T.self is Int8.Type {
-            XCTAssertEqual(expected as! Int8, actual as! Int8, file: fileName, line: lineNumber)
-        }
-        else if T.self is Int16.Type {
-            XCTAssertEqual(expected as! Int16, actual as! Int16, file: fileName, line: lineNumber)
-        }
-        else if T.self is Int32.Type {
-            XCTAssertEqual(expected as! Int32, actual as! Int32, file: fileName, line: lineNumber)
-        }
-        else if T.self is Int64.Type {
-            XCTAssertEqual(expected as! Int64, actual as! Int64, file: fileName, line: lineNumber)
-        }
-        else if T.self is String.Type {
-            XCTAssertEqual(expected as! String, actual as! String, file: fileName, line: lineNumber)
-        }
-        else if T.self is Data.Type {
-            XCTAssertEqual(expected as! Data, actual as! Data, file: fileName, line: lineNumber)
-        }
-        else if T.self is Date.Type {
-            XCTAssertEqual(expected as! Date, actual as! Date, file: fileName, line: lineNumber)
-        }
-        else if T.self is [Int].Type {
-            XCTAssertEqual(expected as! [Int], actual as! [Int], file: fileName, line: lineNumber)
-        }
-        else if T.self is [Float].Type {
-            XCTAssertEqual(expected as! [Float], actual as! [Float], file: fileName, line: lineNumber)
-        }
-        else if T.self is [Double].Type {
-            XCTAssertEqual(expected as! [Double], actual as! [Double], file: fileName, line: lineNumber)
-        }
-        else if T.self is [Bool].Type {
-            XCTAssertEqual(expected as! [Bool], actual as! [Bool], file: fileName, line: lineNumber)
-        }
-        else if T.self is [Int8].Type {
-            XCTAssertEqual(expected as! [Int8], actual as! [Int8], file: fileName, line: lineNumber)
-        }
-        else if T.self is [Int16].Type {
-            XCTAssertEqual(expected as! [Int16], actual as! [Int16], file: fileName, line: lineNumber)
-        }
-        else if T.self is [Int32].Type {
-            XCTAssertEqual(expected as! [Int32], actual as! [Int32], file: fileName, line: lineNumber)
-        }
-        else if T.self is [Int64].Type {
-            XCTAssertEqual(expected as! [Int64], actual as! [Int64], file: fileName, line: lineNumber)
-        }
-        else if T.self is [String].Type {
-            XCTAssertEqual(expected as! [String], actual as! [String], file: fileName, line: lineNumber)
-        }
-        else if T.self is [Data].Type {
-            XCTAssertEqual(expected as! [Data], actual as! [Data], file: fileName, line: lineNumber)
-        }
-        else if T.self is [Date].Type {
-            XCTAssertEqual(expected as! [Date], actual as! [Date], file: fileName, line: lineNumber)
-        }
-        else if T.self is Int?.Type {
-            XCTAssertEqual(cast(expected) as Int?, cast(actual) as Int?, file: fileName, line: lineNumber)
-        }
-        else if T.self is Float?.Type {
-            XCTAssertEqual(cast(expected) as Float?, cast(actual) as Float?, file: fileName, line: lineNumber)
-        }
-        else if T.self is Double?.Type {
-            XCTAssertEqual(cast(expected) as Double?, cast(actual) as Double?, file: fileName, line: lineNumber)
-        }
-        else if T.self is Bool?.Type {
-            XCTAssertEqual(cast(expected) as Bool?, cast(actual) as Bool?, file: fileName, line: lineNumber)
-        }
-        else if T.self is Int8?.Type {
-            XCTAssertEqual(cast(expected) as Int8?, cast(actual) as Int8?, file: fileName, line: lineNumber)
-        }
-        else if T.self is Int16?.Type {
-            XCTAssertEqual(cast(expected) as Int16?, cast(actual) as Int16?, file: fileName, line: lineNumber)
-        }
-        else if T.self is Int32?.Type {
-            XCTAssertEqual(cast(expected) as Int32?, cast(actual) as Int32?, file: fileName, line: lineNumber)
-        }
-        else if T.self is Int64?.Type {
-            XCTAssertEqual(cast(expected) as Int64?, cast(actual) as Int64?, file: fileName, line: lineNumber)
-        }
-        else if T.self is String?.Type {
-            XCTAssertEqual(cast(expected) as String?, cast(actual) as String?, file: fileName, line: lineNumber)
-        }
-        else if T.self is Data?.Type {
-            XCTAssertEqual(cast(expected) as Data?, cast(actual) as Data?, file: fileName, line: lineNumber)
-        }
-        else if T.self is Date?.Type {
-            XCTAssertEqual(cast(expected) as Date?, cast(actual) as Date?, file: fileName, line: lineNumber)
-        }
-        else if T.self is [Int?].Type {
-            assertEqual(cast(expected) as [Int?], cast(actual) as [Int?], file: fileName, line: lineNumber)
-        }
-        else if T.self is [Float?].Type {
-            assertEqual(cast(expected) as [Float?], cast(actual) as [Float?], file: fileName, line: lineNumber)
-        }
-        else if T.self is [Double?].Type {
-            assertEqual(cast(expected) as [Double?], cast(actual) as [Double?], file: fileName, line: lineNumber)
-        }
-        else if T.self is [Bool?].Type {
-            assertEqual(cast(expected) as [Bool?], cast(actual) as [Bool?], file: fileName, line: lineNumber)
-        }
-        else if T.self is [Int8?].Type {
-            assertEqual(cast(expected) as [Int8?], cast(actual) as [Int8?], file: fileName, line: lineNumber)
-        }
-        else if T.self is [Int16?].Type {
-            assertEqual(cast(expected) as [Int16?], cast(actual) as [Int16?], file: fileName, line: lineNumber)
-        }
-        else if T.self is [Int32?].Type {
-            assertEqual(cast(expected) as [Int32?], cast(actual) as [Int32?], file: fileName, line: lineNumber)
-        }
-        else if T.self is [Int64?].Type {
-            assertEqual(cast(expected) as [Int64?], cast(actual) as [Int64?], file: fileName, line: lineNumber)
-        }
-        else if T.self is [String?].Type {
-            assertEqual(cast(expected) as [String?], cast(actual) as [String?], file: fileName, line: lineNumber)
-        }
-        else if T.self is [Data?].Type {
-            assertEqual(cast(expected) as [Data?], cast(actual) as [Data?], file: fileName, line: lineNumber)
-        }
-        else if T.self is [Date?].Type {
-            assertEqual(cast(expected) as [Date?], cast(actual) as [Date?], file: fileName, line: lineNumber)
-        }
-        else {
-            XCTFail("unsupported type \(T.self)", file: fileName, line: lineNumber)
-            fatalError("unsupported type \(T.self)")
-        }
-    }
-
-    func assertEqualTo<T>(_ expected: T?, _ actual: T?, fileName: StaticString = #file, lineNumber: UInt = #line) {
-        if expected == nil {
-            XCTAssertNil(actual, file: fileName, line: lineNumber)
-        }
-        else if actual == nil {
-            XCTFail("nil")
-        }
-        else {
-            assertEqualTo(expected!, actual!, fileName: fileName, lineNumber: lineNumber)
-        }
-    }
-
-    func assertEqualTo<T>(_ expected: T, _ actual: T?) {
-        guard let actual = actual else {
-            XCTFail("nil")
-            return
-        }
-        assertEqualTo(expected, actual)
+    static func values() -> [ObjectId?] {
+        return [nil] + ObjectIdFactory.values().dropLast()
     }
 }
-#endif
 
-class PrimitiveListTestsBase<O: ObjectFactory, V: ValueFactory>: EquatableTestCase {
+class PrimitiveListTestsBase<O: ObjectFactory, V: ValueFactory>: TestCase {
     var realm: Realm?
     var obj: SwiftListObject!
     var array: List<V.T>!
     var values: [V.T]!
 
-#if swift(>=4)
     class func _defaultTestSuite() -> XCTestSuite {
         return defaultTestSuite
     }
-#else
-    class func _defaultTestSuite() -> XCTestSuite {
-        return defaultTestSuite()
-    }
-#endif
 
     override func setUp() {
         obj = SwiftListObject()
@@ -487,11 +385,11 @@ class PrimitiveListTests<O: ObjectFactory, V: ValueFactory>: PrimitiveListTestsB
         XCTAssertNil(array.index(of: values[0]))
 
         array.append(values[0])
-        assertEqualTo(0, array.index(of: values[0]))
+        XCTAssertEqual(0, array.index(of: values[0]))
 
         array.append(values[1])
-        assertEqualTo(0, array.index(of: values[0]))
-        assertEqualTo(1, array.index(of: values[1]))
+        XCTAssertEqual(0, array.index(of: values[0]))
+        XCTAssertEqual(1, array.index(of: values[1]))
     }
 
     // FIXME: Not yet implemented
@@ -499,17 +397,17 @@ class PrimitiveListTests<O: ObjectFactory, V: ValueFactory>: PrimitiveListTestsB
         XCTAssertNil(array.index(matching: "self = %@", values[0]))
 
         array.append(values[0])
-        assertEqualTo(0, array.index(matching: "self = %@", values[0]))
+        XCTAssertEqual(0, array.index(matching: "self = %@", values[0]))
 
         array.append(values[1])
-        assertEqualTo(0, array.index(matching: "self = %@", values[0]))
-        assertEqualTo(1, array.index(matching: "self = %@", values[1]))
+        XCTAssertEqual(0, array.index(matching: "self = %@", values[0]))
+        XCTAssertEqual(1, array.index(matching: "self = %@", values[1]))
     }
 
     func testSubscript() {
         array.append(objectsIn: values)
         for i in 0..<values.count {
-            assertEqualTo(array[i], values[i])
+            XCTAssertEqual(array[i], values[i])
         }
         assertThrows(array[values.count], reason: "Index 3 is out of bounds")
         assertThrows(array[-1], reason: "negative value")
@@ -517,23 +415,23 @@ class PrimitiveListTests<O: ObjectFactory, V: ValueFactory>: PrimitiveListTestsB
 
     func testFirst() {
         array.append(objectsIn: values)
-        assertEqualTo(array.first, values.first)
+        XCTAssertEqual(array.first, values.first)
         array.removeAll()
         XCTAssertNil(array.first)
     }
 
     func testLast() {
         array.append(objectsIn: values)
-        assertEqualTo(array.last, values.last)
+        XCTAssertEqual(array.last, values.last)
         array.removeAll()
         XCTAssertNil(array.last)
 
     }
 
     func testValueForKey() {
-        assertEqualTo(array.value(forKey: "self").count, 0)
+        XCTAssertEqual(array.value(forKey: "self").count, 0)
         array.append(objectsIn: values)
-        assertEqualTo(values!, array.value(forKey: "self").map { dynamicBridgeCast(fromObjectiveC: $0) as V.T })
+        XCTAssertEqual(values!, array.value(forKey: "self").map { dynamicBridgeCast(fromObjectiveC: $0) as V.T })
 
         assertThrows(array.value(forKey: "not self"), named: "NSUnknownKeyException")
     }
@@ -549,25 +447,25 @@ class PrimitiveListTests<O: ObjectFactory, V: ValueFactory>: PrimitiveListTestsB
     }
 
     func testInsert() {
-        assertEqualTo(Int(0), array.count)
+        XCTAssertEqual(Int(0), array.count)
 
         array.insert(values[0], at: 0)
-        assertEqualTo(Int(1), array.count)
-        assertEqualTo(values[0], array[0])
+        XCTAssertEqual(Int(1), array.count)
+        XCTAssertEqual(values[0], array[0])
 
         array.insert(values[1], at: 0)
-        assertEqualTo(Int(2), array.count)
-        assertEqualTo(values[1], array[0])
-        assertEqualTo(values[0], array[1])
+        XCTAssertEqual(Int(2), array.count)
+        XCTAssertEqual(values[1], array[0])
+        XCTAssertEqual(values[0], array[1])
 
         array.insert(values[2], at: 2)
-        assertEqualTo(Int(3), array.count)
-        assertEqualTo(values[1], array[0])
-        assertEqualTo(values[0], array[1])
-        assertEqualTo(values[2], array[2])
+        XCTAssertEqual(Int(3), array.count)
+        XCTAssertEqual(values[1], array[0])
+        XCTAssertEqual(values[0], array[1])
+        XCTAssertEqual(values[2], array[2])
 
-        assertThrows(_ = array.insert(values[0], at: 4))
-        assertThrows(_ = array.insert(values[0], at: -1))
+        assertThrows(array.insert(values[0], at: 4))
+        assertThrows(array.insert(values[0], at: -1))
     }
 
     func testRemove() {
@@ -577,19 +475,19 @@ class PrimitiveListTests<O: ObjectFactory, V: ValueFactory>: PrimitiveListTestsB
         array.append(objectsIn: values)
 
         assertThrows(array.remove(at: -1))
-        assertEqualTo(values[0], array[0])
-        assertEqualTo(values[1], array[1])
-        assertEqualTo(values[2], array[2])
+        XCTAssertEqual(values[0], array[0])
+        XCTAssertEqual(values[1], array[1])
+        XCTAssertEqual(values[2], array[2])
         assertThrows(array[3])
 
         array.remove(at: 0)
-        assertEqualTo(values[1], array[0])
-        assertEqualTo(values[2], array[1])
+        XCTAssertEqual(values[1], array[0])
+        XCTAssertEqual(values[2], array[1])
         assertThrows(array[2])
         assertThrows(array.remove(at: 2))
 
         array.remove(at: 1)
-        assertEqualTo(values[1], array[0])
+        XCTAssertEqual(values[1], array[0])
         assertThrows(array[1])
     }
 
@@ -599,19 +497,19 @@ class PrimitiveListTests<O: ObjectFactory, V: ValueFactory>: PrimitiveListTestsB
         array.append(objectsIn: values)
         array.removeLast()
 
-        assertEqualTo(array.count, 2)
-        assertEqualTo(values[0], array[0])
-        assertEqualTo(values[1], array[1])
+        XCTAssertEqual(array.count, 2)
+        XCTAssertEqual(values[0], array[0])
+        XCTAssertEqual(values[1], array[1])
 
         array.removeLast(2)
-        assertEqualTo(array.count, 0)
+        XCTAssertEqual(array.count, 0)
     }
 
     func testRemoveAll() {
         array.removeAll()
         array.append(objectsIn: values)
         array.removeAll()
-        assertEqualTo(array.count, 0)
+        XCTAssertEqual(array.count, 0)
     }
 
     func testReplace() {
@@ -620,9 +518,9 @@ class PrimitiveListTests<O: ObjectFactory, V: ValueFactory>: PrimitiveListTestsB
 
         array.append(objectsIn: values)
         array.replace(index: 1, object: values[0])
-        assertEqualTo(array[0], values[0])
-        assertEqualTo(array[1], values[0])
-        assertEqualTo(array[2], values[2])
+        XCTAssertEqual(array[0], values[0])
+        XCTAssertEqual(array[1], values[0])
+        XCTAssertEqual(array[2], values[2])
 
         assertThrows(array.replace(index: 3, object: values[0]),
                      reason: "Index 3 is out of bounds")
@@ -641,15 +539,15 @@ class PrimitiveListTests<O: ObjectFactory, V: ValueFactory>: PrimitiveListTestsB
 
         array.replaceSubrange(0..<0, with: [values[0]])
         XCTAssertEqual(array.count, 1)
-        assertEqualTo(array[0], values[0])
+        XCTAssertEqual(array[0], values[0])
 
         array.replaceSubrange(0..<1, with: values)
         XCTAssertEqual(array.count, 3)
 
         array.replaceSubrange(1..<2, with: [])
         XCTAssertEqual(array.count, 2)
-        assertEqualTo(array[0], values[0])
-        assertEqualTo(array[1], values[2])
+        XCTAssertEqual(array[0], values[0])
+        XCTAssertEqual(array[1], values[2])
     }
 
     func testMove() {
@@ -657,9 +555,9 @@ class PrimitiveListTests<O: ObjectFactory, V: ValueFactory>: PrimitiveListTestsB
 
         array.append(objectsIn: values)
         array.move(from: 2, to: 0)
-        assertEqualTo(array[0], values[2])
-        assertEqualTo(array[1], values[0])
-        assertEqualTo(array[2], values[1])
+        XCTAssertEqual(array[0], values[2])
+        XCTAssertEqual(array[1], values[0])
+        XCTAssertEqual(array[2], values[1])
 
         assertThrows(array.move(from: 3, to: 0), reason: "Index 3 is out of bounds")
         assertThrows(array.move(from: 0, to: 3), reason: "Index 3 is out of bounds")
@@ -672,9 +570,9 @@ class PrimitiveListTests<O: ObjectFactory, V: ValueFactory>: PrimitiveListTestsB
 
         array.append(objectsIn: values)
         array.swapAt(0, 2)
-        assertEqualTo(array[0], values[2])
-        assertEqualTo(array[1], values[1])
-        assertEqualTo(array[2], values[0])
+        XCTAssertEqual(array[0], values[2])
+        XCTAssertEqual(array[1], values[1])
+        XCTAssertEqual(array[2], values[0])
 
         assertThrows(array.swapAt(3, 0), reason: "Index 3 is out of bounds")
         assertThrows(array.swapAt(0, 3), reason: "Index 3 is out of bounds")
@@ -687,13 +585,13 @@ class MinMaxPrimitiveListTests<O: ObjectFactory, V: ValueFactory>: PrimitiveList
     func testMin() {
         XCTAssertNil(array.min())
         array.append(objectsIn: values.reversed())
-        assertEqualTo(array.min(), values.first)
+        XCTAssertEqual(array.min(), values.first)
     }
 
     func testMax() {
         XCTAssertNil(array.max())
         array.append(objectsIn: values.reversed())
-        assertEqualTo(array.max(), values.last)
+        XCTAssertEqual(array.max(), values.last)
     }
 }
 
@@ -708,35 +606,34 @@ class OptionalMinMaxPrimitiveListTests<O: ObjectFactory, V: ValueFactory>: Primi
         XCTAssertNil(array2.min())
         array.append(objectsIn: values.reversed())
         let expected = values[1] as! V.W
-        assertEqualTo(array2.min(), expected)
+        XCTAssertEqual(array2.min(), expected)
     }
 
     func testMax() {
         XCTAssertNil(array2.max())
         array.append(objectsIn: values.reversed())
         let expected = values[2] as! V.W
-        assertEqualTo(array2.max(), expected)
+        XCTAssertEqual(array2.max(), expected)
     }
 }
 
 class AddablePrimitiveListTests<O: ObjectFactory, V: ValueFactory>: PrimitiveListTestsBase<O, V> where V.T: AddableType {
     func testSum() {
-        assertEqualTo(array.sum(), V.T())
+        XCTAssertEqual(array.sum(), V.T())
         array.append(objectsIn: values)
 
         // Expressing "can be added and converted to a floating point type" as
         // a protocol requirement is awful, so sidestep it all with obj-c
         let expected = ((values.map(dynamicBridgeCast) as NSArray).value(forKeyPath: "@sum.self")! as! NSNumber).doubleValue
-        let actual: V.T = array.sum()
-        XCTAssertEqual((dynamicBridgeCast(fromSwift: actual) as! NSNumber).doubleValue, expected, accuracy: 0.01)
+        XCTAssertEqual(V.doubleValue(t: array.sum()), expected, accuracy: 0.01)
     }
 
     func testAverage() {
-        XCTAssertNil(array.average())
+        XCTAssertNil(array.average() as V.AverageType?)
         array.append(objectsIn: values)
 
         let expected = ((values.map(dynamicBridgeCast) as NSArray).value(forKeyPath: "@avg.self")! as! NSNumber).doubleValue
-        XCTAssertEqual(array.average()!, expected, accuracy: 0.01)
+        XCTAssertEqual(V.doubleValue(array.average()!), expected, accuracy: 0.01)
     }
 }
 
@@ -748,7 +645,7 @@ class OptionalAddablePrimitiveListTests<O: ObjectFactory, V: ValueFactory>: Prim
     }
 
     func testSum() {
-        assertEqualTo(array2.sum(), V.W())
+        XCTAssertEqual(array2.sum(), V.W())
         array.append(objectsIn: values)
 
         var nonNil = values!
@@ -757,19 +654,18 @@ class OptionalAddablePrimitiveListTests<O: ObjectFactory, V: ValueFactory>: Prim
         // Expressing "can be added and converted to a floating point type" as
         // a protocol requirement is awful, so sidestep it all with obj-c
         let expected = ((nonNil.map(dynamicBridgeCast) as NSArray).value(forKeyPath: "@sum.self")! as! NSNumber).doubleValue
-        let actual: V.W = array2.sum()
-        XCTAssertEqual((dynamicBridgeCast(fromSwift: actual) as! NSNumber).doubleValue, expected, accuracy: 0.01)
+        XCTAssertEqual(V.doubleValue(w: array2.sum()), expected, accuracy: 0.01)
     }
 
     func testAverage() {
-        XCTAssertNil(array2.average())
+        XCTAssertNil(array2.average() as Double?)
         array.append(objectsIn: values)
 
         var nonNil = values!
         nonNil.remove(at: 0)
 
         let expected = ((nonNil.map(dynamicBridgeCast) as NSArray).value(forKeyPath: "@avg.self")! as! NSNumber).doubleValue
-        XCTAssertEqual(array2.average()!, expected, accuracy: 0.01)
+        XCTAssertEqual(V.doubleValue(array2.average()!), expected, accuracy: 0.01)
     }
 }
 
@@ -810,6 +706,8 @@ func addTests<OF: ObjectFactory>(_ suite: XCTestSuite, _ type: OF.Type) {
     _ = PrimitiveListTests<OF, StringFactory>._defaultTestSuite().tests.map(suite.addTest)
     _ = PrimitiveListTests<OF, DataFactory>._defaultTestSuite().tests.map(suite.addTest)
     _ = PrimitiveListTests<OF, DateFactory>._defaultTestSuite().tests.map(suite.addTest)
+    _ = PrimitiveListTests<OF, DecimalFactory>._defaultTestSuite().tests.map(suite.addTest)
+    _ = PrimitiveListTests<OF, ObjectIdFactory>._defaultTestSuite().tests.map(suite.addTest)
 
     _ = MinMaxPrimitiveListTests<OF, IntFactory>._defaultTestSuite().tests.map(suite.addTest)
     _ = MinMaxPrimitiveListTests<OF, Int8Factory>._defaultTestSuite().tests.map(suite.addTest)
@@ -819,6 +717,7 @@ func addTests<OF: ObjectFactory>(_ suite: XCTestSuite, _ type: OF.Type) {
     _ = MinMaxPrimitiveListTests<OF, FloatFactory>._defaultTestSuite().tests.map(suite.addTest)
     _ = MinMaxPrimitiveListTests<OF, DoubleFactory>._defaultTestSuite().tests.map(suite.addTest)
     _ = MinMaxPrimitiveListTests<OF, DateFactory>._defaultTestSuite().tests.map(suite.addTest)
+    _ = MinMaxPrimitiveListTests<OF, DecimalFactory>._defaultTestSuite().tests.map(suite.addTest)
 
     _ = AddablePrimitiveListTests<OF, IntFactory>._defaultTestSuite().tests.map(suite.addTest)
     _ = AddablePrimitiveListTests<OF, Int8Factory>._defaultTestSuite().tests.map(suite.addTest)
@@ -827,6 +726,7 @@ func addTests<OF: ObjectFactory>(_ suite: XCTestSuite, _ type: OF.Type) {
     _ = AddablePrimitiveListTests<OF, Int64Factory>._defaultTestSuite().tests.map(suite.addTest)
     _ = AddablePrimitiveListTests<OF, FloatFactory>._defaultTestSuite().tests.map(suite.addTest)
     _ = AddablePrimitiveListTests<OF, DoubleFactory>._defaultTestSuite().tests.map(suite.addTest)
+    _ = AddablePrimitiveListTests<OF, DecimalFactory>._defaultTestSuite().tests.map(suite.addTest)
 
     _ = PrimitiveListTests<OF, OptionalIntFactory>._defaultTestSuite().tests.map(suite.addTest)
     _ = PrimitiveListTests<OF, OptionalInt8Factory>._defaultTestSuite().tests.map(suite.addTest)
@@ -838,6 +738,8 @@ func addTests<OF: ObjectFactory>(_ suite: XCTestSuite, _ type: OF.Type) {
     _ = PrimitiveListTests<OF, OptionalStringFactory>._defaultTestSuite().tests.map(suite.addTest)
     _ = PrimitiveListTests<OF, OptionalDataFactory>._defaultTestSuite().tests.map(suite.addTest)
     _ = PrimitiveListTests<OF, OptionalDateFactory>._defaultTestSuite().tests.map(suite.addTest)
+    _ = PrimitiveListTests<OF, OptionalDecimalFactory>._defaultTestSuite().tests.map(suite.addTest)
+    _ = PrimitiveListTests<OF, OptionalObjectIdFactory>._defaultTestSuite().tests.map(suite.addTest)
 
     _ = OptionalMinMaxPrimitiveListTests<OF, OptionalIntFactory>._defaultTestSuite().tests.map(suite.addTest)
     _ = OptionalMinMaxPrimitiveListTests<OF, OptionalInt8Factory>._defaultTestSuite().tests.map(suite.addTest)
@@ -847,6 +749,7 @@ func addTests<OF: ObjectFactory>(_ suite: XCTestSuite, _ type: OF.Type) {
     _ = OptionalMinMaxPrimitiveListTests<OF, OptionalFloatFactory>._defaultTestSuite().tests.map(suite.addTest)
     _ = OptionalMinMaxPrimitiveListTests<OF, OptionalDoubleFactory>._defaultTestSuite().tests.map(suite.addTest)
     _ = OptionalMinMaxPrimitiveListTests<OF, OptionalDateFactory>._defaultTestSuite().tests.map(suite.addTest)
+    _ = OptionalMinMaxPrimitiveListTests<OF, OptionalDecimalFactory>._defaultTestSuite().tests.map(suite.addTest)
 
     _ = OptionalAddablePrimitiveListTests<OF, OptionalIntFactory>._defaultTestSuite().tests.map(suite.addTest)
     _ = OptionalAddablePrimitiveListTests<OF, OptionalInt8Factory>._defaultTestSuite().tests.map(suite.addTest)
@@ -855,6 +758,7 @@ func addTests<OF: ObjectFactory>(_ suite: XCTestSuite, _ type: OF.Type) {
     _ = OptionalAddablePrimitiveListTests<OF, OptionalInt64Factory>._defaultTestSuite().tests.map(suite.addTest)
     _ = OptionalAddablePrimitiveListTests<OF, OptionalFloatFactory>._defaultTestSuite().tests.map(suite.addTest)
     _ = OptionalAddablePrimitiveListTests<OF, OptionalDoubleFactory>._defaultTestSuite().tests.map(suite.addTest)
+    _ = OptionalAddablePrimitiveListTests<OF, OptionalDecimalFactory>._defaultTestSuite().tests.map(suite.addTest)
 }
 
 class UnmanagedPrimitiveListTests: TestCase {
@@ -864,15 +768,9 @@ class UnmanagedPrimitiveListTests: TestCase {
         return suite
     }
 
-#if swift(>=4)
     override class var defaultTestSuite: XCTestSuite {
         return _defaultTestSuite()
     }
-#else
-    override class func defaultTestSuite() -> XCTestSuite {
-        return _defaultTestSuite()
-    }
-#endif
 }
 
 class ManagedPrimitiveListTests: TestCase {
@@ -903,13 +801,7 @@ class ManagedPrimitiveListTests: TestCase {
         return suite
     }
 
-#if swift(>=4)
     override class var defaultTestSuite: XCTestSuite {
         return _defaultTestSuite()
     }
-#else
-    override class func defaultTestSuite() -> XCTestSuite {
-        return _defaultTestSuite()
-    }
-#endif
 }

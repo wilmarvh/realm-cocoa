@@ -19,6 +19,7 @@
 #import <XCTest/XCTest.h>
 
 #import "RLMMultiProcessTestCase.h"
+#import "TestUtils.h"
 
 #import "RLMAccessor.h"
 #import "RLMObjectSchema_Private.hpp"
@@ -29,8 +30,8 @@
 #import "RLMRealm_Private.hpp"
 #import "RLMSchema_Private.hpp"
 #import "RLMUtil.hpp"
-#import "schema.hpp"
 
+#import <realm/object-store/schema.hpp>
 #import <realm/table.hpp>
 
 #import <algorithm>
@@ -124,7 +125,7 @@ RLM_ARRAY_TYPE(NonDefaultObject);
 @end
 
 @implementation SchemaTestClassWithSingleDuplicateProperty
-@dynamic string;
+@synthesize string;
 @end
 
 @interface SchemaTestClassWithMultipleDuplicatePropertiesBase : FakeObject
@@ -141,8 +142,8 @@ RLM_ARRAY_TYPE(NonDefaultObject);
 @end
 
 @implementation SchemaTestClassWithMultipleDuplicateProperties
-@dynamic string;
-@dynamic integer;
+@synthesize string;
+@synthesize integer;
 @end
 
 @interface UnindexableProperty : FakeObject
@@ -154,11 +155,19 @@ RLM_ARRAY_TYPE(NonDefaultObject);
 }
 @end
 
-
 @interface InvalidPrimaryKeyType : FakeObject
 @property double primaryKey;
 @end
 @implementation InvalidPrimaryKeyType
++ (NSString *)primaryKey {
+    return @"primaryKey";
+}
+@end
+
+@interface MissingPrimaryKey : FakeObject
+@property int pk;
+@end
+@implementation MissingPrimaryKey
 + (NSString *)primaryKey {
     return @"primaryKey";
 }
@@ -202,8 +211,28 @@ RLM_ARRAY_TYPE(NonDefaultObject);
 @interface MixedProperty : FakeObject
 @property id mixed;
 @end
-
 @implementation MixedProperty
+@end
+
+@interface LinkFromEmbeddedToTopLevel : FakeEmbeddedObject
+@property IntObject *link;
+@end
+@implementation LinkFromEmbeddedToTopLevel
+@end
+
+@interface ArrayFromEmbeddedToTopLevel : FakeEmbeddedObject
+@property RLMArray<IntObject> *array;
+@end
+@implementation ArrayFromEmbeddedToTopLevel
+@end
+
+@interface EmbeddedObjectWithPrimaryKey : FakeEmbeddedObject
+@property int pk;
+@end
+@implementation EmbeddedObjectWithPrimaryKey
++ (NSString *)primaryKey {
+    return @"pk";
+}
 @end
 
 RLM_ARRAY_TYPE(SchemaTestsLinkSource)
@@ -299,16 +328,17 @@ RLM_ARRAY_TYPE(NotARealClass)
 
 @end
 
+@interface OrphanObject : RLMEmbeddedObject
+@property int value;
+@end
+@implementation OrphanObject
+@end
+
 
 @interface SchemaTests : RLMMultiProcessTestCase
 @end
 
 @implementation SchemaTests
-
-- (void)tearDown {
-    RLMSetTreatFakeObjectAsRLMObject(NO);
-    [super tearDown];
-}
 
 - (void)testNoSchemaForUnmanagedObjectClasses {
     RLMSchema *schema = [RLMSchema sharedSchema];
@@ -513,8 +543,6 @@ RLM_ARRAY_TYPE(NotARealClass)
                                               @"\tAllTypesObject {\n"
                                               @"\t\tboolCol {\n"
                                               @"\t\t\ttype = bool;\n"
-                                              @"\t\t\tobjectClassName = (null);\n"
-                                              @"\t\t\tlinkOriginPropertyName = (null);\n"
                                               @"\t\t\tindexed = NO;\n"
                                               @"\t\t\tisPrimary = NO;\n"
                                               @"\t\t\tarray = NO;\n"
@@ -522,8 +550,6 @@ RLM_ARRAY_TYPE(NotARealClass)
                                               @"\t\t}\n"
                                               @"\t\tintCol {\n"
                                               @"\t\t\ttype = int;\n"
-                                              @"\t\t\tobjectClassName = (null);\n"
-                                              @"\t\t\tlinkOriginPropertyName = (null);\n"
                                               @"\t\t\tindexed = NO;\n"
                                               @"\t\t\tisPrimary = NO;\n"
                                               @"\t\t\tarray = NO;\n"
@@ -531,8 +557,6 @@ RLM_ARRAY_TYPE(NotARealClass)
                                               @"\t\t}\n"
                                               @"\t\tfloatCol {\n"
                                               @"\t\t\ttype = float;\n"
-                                              @"\t\t\tobjectClassName = (null);\n"
-                                              @"\t\t\tlinkOriginPropertyName = (null);\n"
                                               @"\t\t\tindexed = NO;\n"
                                               @"\t\t\tisPrimary = NO;\n"
                                               @"\t\t\tarray = NO;\n"
@@ -540,8 +564,6 @@ RLM_ARRAY_TYPE(NotARealClass)
                                               @"\t\t}\n"
                                               @"\t\tdoubleCol {\n"
                                               @"\t\t\ttype = double;\n"
-                                              @"\t\t\tobjectClassName = (null);\n"
-                                              @"\t\t\tlinkOriginPropertyName = (null);\n"
                                               @"\t\t\tindexed = NO;\n"
                                               @"\t\t\tisPrimary = NO;\n"
                                               @"\t\t\tarray = NO;\n"
@@ -549,8 +571,6 @@ RLM_ARRAY_TYPE(NotARealClass)
                                               @"\t\t}\n"
                                               @"\t\tstringCol {\n"
                                               @"\t\t\ttype = string;\n"
-                                              @"\t\t\tobjectClassName = (null);\n"
-                                              @"\t\t\tlinkOriginPropertyName = (null);\n"
                                               @"\t\t\tindexed = NO;\n"
                                               @"\t\t\tisPrimary = NO;\n"
                                               @"\t\t\tarray = NO;\n"
@@ -558,8 +578,6 @@ RLM_ARRAY_TYPE(NotARealClass)
                                               @"\t\t}\n"
                                               @"\t\tbinaryCol {\n"
                                               @"\t\t\ttype = data;\n"
-                                              @"\t\t\tobjectClassName = (null);\n"
-                                              @"\t\t\tlinkOriginPropertyName = (null);\n"
                                               @"\t\t\tindexed = NO;\n"
                                               @"\t\t\tisPrimary = NO;\n"
                                               @"\t\t\tarray = NO;\n"
@@ -567,8 +585,6 @@ RLM_ARRAY_TYPE(NotARealClass)
                                               @"\t\t}\n"
                                               @"\t\tdateCol {\n"
                                               @"\t\t\ttype = date;\n"
-                                              @"\t\t\tobjectClassName = (null);\n"
-                                              @"\t\t\tlinkOriginPropertyName = (null);\n"
                                               @"\t\t\tindexed = NO;\n"
                                               @"\t\t\tisPrimary = NO;\n"
                                               @"\t\t\tarray = NO;\n"
@@ -576,8 +592,6 @@ RLM_ARRAY_TYPE(NotARealClass)
                                               @"\t\t}\n"
                                               @"\t\tcBoolCol {\n"
                                               @"\t\t\ttype = bool;\n"
-                                              @"\t\t\tobjectClassName = (null);\n"
-                                              @"\t\t\tlinkOriginPropertyName = (null);\n"
                                               @"\t\t\tindexed = NO;\n"
                                               @"\t\t\tisPrimary = NO;\n"
                                               @"\t\t\tarray = NO;\n"
@@ -585,8 +599,20 @@ RLM_ARRAY_TYPE(NotARealClass)
                                               @"\t\t}\n"
                                               @"\t\tlongCol {\n"
                                               @"\t\t\ttype = int;\n"
-                                              @"\t\t\tobjectClassName = (null);\n"
-                                              @"\t\t\tlinkOriginPropertyName = (null);\n"
+                                              @"\t\t\tindexed = NO;\n"
+                                              @"\t\t\tisPrimary = NO;\n"
+                                              @"\t\t\tarray = NO;\n"
+                                              @"\t\t\toptional = NO;\n"
+                                              @"\t\t}\n"
+                                              @"\t\tdecimalCol {\n"
+                                              @"\t\t\ttype = decimal128;\n"
+                                              @"\t\t\tindexed = NO;\n"
+                                              @"\t\t\tisPrimary = NO;\n"
+                                              @"\t\t\tarray = NO;\n"
+                                              @"\t\t\toptional = NO;\n"
+                                              @"\t\t}\n"
+                                              @"\t\tobjectIdCol {\n"
+                                              @"\t\t\ttype = object id;\n"
                                               @"\t\t\tindexed = NO;\n"
                                               @"\t\t\tisPrimary = NO;\n"
                                               @"\t\t\tarray = NO;\n"
@@ -614,8 +640,6 @@ RLM_ARRAY_TYPE(NotARealClass)
                                               @"\tIntObject {\n"
                                               @"\t\tintCol {\n"
                                               @"\t\t\ttype = int;\n"
-                                              @"\t\t\tobjectClassName = (null);\n"
-                                              @"\t\t\tlinkOriginPropertyName = (null);\n"
                                               @"\t\t\tindexed = NO;\n"
                                               @"\t\t\tisPrimary = NO;\n"
                                               @"\t\t\tarray = NO;\n"
@@ -625,8 +649,6 @@ RLM_ARRAY_TYPE(NotARealClass)
                                               @"\tStringObject {\n"
                                               @"\t\tstringCol {\n"
                                               @"\t\t\ttype = string;\n"
-                                              @"\t\t\tobjectClassName = (null);\n"
-                                              @"\t\t\tlinkOriginPropertyName = (null);\n"
                                               @"\t\t\tindexed = NO;\n"
                                               @"\t\t\tisPrimary = NO;\n"
                                               @"\t\t\tarray = NO;\n"
@@ -639,15 +661,19 @@ RLM_ARRAY_TYPE(NotARealClass)
 
 - (void)testClassWithDuplicateProperties
 {
-    // If a property is overriden in a child class it should not be picked up more than once.
-    RLMObjectSchema *firstSchema = [RLMObjectSchema schemaForObjectClass:SchemaTestClassWithSingleDuplicateProperty.class];
-    XCTAssertEqual((int)firstSchema.properties.count, 1);
-    RLMObjectSchema *secondSchema = [RLMObjectSchema schemaForObjectClass:SchemaTestClassWithMultipleDuplicateProperties.class];
-    XCTAssertEqual((int)secondSchema.properties.count, 2);
+    RLMAssertThrowsWithReasonMatching([RLMObjectSchema schemaForObjectClass:SchemaTestClassWithSingleDuplicateProperty.class],
+                                      @"'string' .* multiple times .* 'SchemaTestClassWithSingleDuplicateProperty'");
+    RLMAssertThrowsWithReasonMatching([RLMObjectSchema schemaForObjectClass:SchemaTestClassWithMultipleDuplicateProperties.class],
+                                      @"'SchemaTestClassWithMultipleDuplicateProperties' .* declared multiple times");
 }
 
 - (void)testClassWithInvalidPrimaryKey {
     XCTAssertThrows([RLMObjectSchema schemaForObjectClass:InvalidPrimaryKeyType.class]);
+}
+
+- (void)testClassWithMissingPrimaryKey {
+    RLMAssertThrowsWithReason([RLMObjectSchema schemaForObjectClass:MissingPrimaryKey.class],
+                              @"Primary key property 'primaryKey' does not exist on object 'MissingPrimaryKey'");
 }
 
 - (void)testClassWithUnindexableProperty {
@@ -720,7 +746,6 @@ RLM_ARRAY_TYPE(NotARealClass)
 }
 
 - (void)testClassWithInvalidLinkingObjectsPropertyMissingSourcePropertyOfLink {
-    RLMSetTreatFakeObjectAsRLMObject(YES);
     RLMRealmConfiguration *config = [RLMRealmConfiguration defaultConfiguration];
     config.customSchema = [RLMSchema schemaWithObjectClasses:@[ InvalidLinkingObjectsPropertyMissingSourcePropertyOfLink.class ]];
     RLMAssertThrowsWithReasonMatching([RLMRealm realmWithConfiguration:config error:nil],
@@ -728,7 +753,6 @@ RLM_ARRAY_TYPE(NotARealClass)
 }
 
 - (void)testClassWithInvalidLinkingObjectsPropertySourcePropertyNotALink {
-    RLMSetTreatFakeObjectAsRLMObject(YES);
     RLMRealmConfiguration *config = [RLMRealmConfiguration defaultConfiguration];
     config.customSchema = [RLMSchema schemaWithObjectClasses:@[ InvalidLinkingObjectsPropertySourcePropertyNotALink.class ]];
     RLMAssertThrowsWithReasonMatching([RLMRealm realmWithConfiguration:config error:nil],
@@ -736,7 +760,6 @@ RLM_ARRAY_TYPE(NotARealClass)
 }
 
 - (void)testClassWithInvalidLinkingObjectsPropertySourcePropertysLinkElsewhere {
-    RLMSetTreatFakeObjectAsRLMObject(YES);
     RLMRealmConfiguration *config = [RLMRealmConfiguration defaultConfiguration];
     config.customSchema = [RLMSchema schemaWithObjectClasses:@[ InvalidLinkingObjectsPropertySourcePropertyLinksElsewhere.class, IntObject.class ]];
     RLMAssertThrowsWithReasonMatching([RLMRealm realmWithConfiguration:config error:nil],
@@ -744,14 +767,29 @@ RLM_ARRAY_TYPE(NotARealClass)
 }
 
 - (void)testMixedIsRejected {
-    RLMSetTreatFakeObjectAsRLMObject(YES);
     RLMRealmConfiguration *config = [RLMRealmConfiguration defaultConfiguration];
     RLMAssertThrowsWithReasonMatching(config.objectClasses = @[[MixedProperty class]],
                                       @"Property 'mixed' is declared as 'id'.*");
 }
 
+- (void)testEmebeddedLinkingToNonEmbedded {
+    RLMRealmConfiguration *config = [RLMRealmConfiguration defaultConfiguration];
+    config.objectClasses = @[[LinkFromEmbeddedToTopLevel class], [IntObject class]];
+    XCTAssertNoThrow([RLMRealm realmWithConfiguration:config error:nil]);
+    config.objectClasses = @[[ArrayFromEmbeddedToTopLevel class], [IntObject class]];
+    XCTAssertNoThrow([RLMRealm realmWithConfiguration:config error:nil]);
+}
+
+- (void)testEmbeddedWithPrimaryKey {
+    RLMRealmConfiguration *config = [RLMRealmConfiguration defaultConfiguration];
+    config.objectClasses = @[[EmbeddedObjectWithPrimaryKey class]];
+    RLMAssertThrowsWithReason([RLMRealm realmWithConfiguration:config error:nil],
+                              @"Embedded object type 'EmbeddedObjectWithPrimaryKey' cannot have a primary key.");
+
+}
+
 // Can't spawn child processes on iOS
-#if !TARGET_OS_IPHONE && !TARGET_IPHONE_SIMULATOR
+#if !TARGET_OS_IPHONE && !TARGET_IPHONE_SIMULATOR && !TARGET_OS_MACCATALYST
 - (void)testPartialSharedSchemaInit {
     if (self.isParent) {
         RLMRunChildAndWait();
@@ -1049,12 +1087,13 @@ RLM_ARRAY_TYPE(NotARealClass)
 
 - (void)testInsertingColumnsInBackgroundProcess {
     RLMRealmConfiguration *config = [RLMRealmConfiguration defaultConfiguration];
-    config.schemaMode = realm::SchemaMode::Additive;
+    config.schemaMode = realm::SchemaMode::AdditiveDiscovered;
     if (!self.isParent) {
         config.dynamic = true;
         RLMRealm *realm = [RLMRealm realmWithConfiguration:config error:nil];
         [realm beginWriteTransaction];
-        realm->_info[@"IntObject"].table()->insert_column(0, realm::type_String, "col");
+        auto table = realm->_info[@"IntObject"].table();
+        table->add_column(realm::type_String, realm::util::format("col%1", table->get_column_count()).c_str());
         [realm commitWriteTransaction];
         return;
     }
@@ -1096,6 +1135,35 @@ RLM_ARRAY_TYPE(NotARealClass)
     (void)[query lastObject];
     RLMRunChildAndWait();
     XCTAssertEqual(query.count, 3U);
+}
+
+- (void)testExplicitlyIncludedEmbeddedOrphanIsRejectedForSyncRealm {
+    RLMUser *user = RLMDummyUser();
+
+    // Test each different order of setting properties because there's a bunch of awkward state involved
+    RLMRealmConfiguration *config = [user configurationWithPartitionValue:@"dummy"];
+    config.objectClasses = @[OrphanObject.class];
+    RLMAssertThrowsWithReason([RLMRealm realmWithConfiguration:config error:nil],
+                              @"Embedded object 'OrphanObject' is unreachable by any link path from top level objects.");
+
+    config = [RLMRealmConfiguration defaultConfiguration];
+    config.syncConfiguration = [user configurationWithPartitionValue:@"dummy"].syncConfiguration;
+    config.objectClasses = @[OrphanObject.class];
+    RLMAssertThrowsWithReason([RLMRealm realmWithConfiguration:config error:nil],
+                              @"Embedded object 'OrphanObject' is unreachable by any link path from top level objects.");
+
+    config = [RLMRealmConfiguration defaultConfiguration];
+    config.objectClasses = @[OrphanObject.class];
+    config.syncConfiguration = [user configurationWithPartitionValue:@"dummy"].syncConfiguration;
+    RLMAssertThrowsWithReason([RLMRealm realmWithConfiguration:config error:nil],
+                              @"Embedded object 'OrphanObject' is unreachable by any link path from top level objects.");
+}
+
+- (void)testExplicitlyIncludedEmbeddedOrphanIsAllowedForLocalRealm {
+    RLMRealmConfiguration *config = [RLMRealmConfiguration defaultConfiguration];
+    config.objectClasses = @[OrphanObject.class];
+    RLMRealm *realm = [RLMRealm realmWithConfiguration:config error:nil];
+    XCTAssertNotNil([realm.schema schemaForClassName:@"OrphanObject"]);
 }
 #endif
 

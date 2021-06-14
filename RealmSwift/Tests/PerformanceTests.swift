@@ -37,7 +37,6 @@ private var largeRealm: Realm!
 private let isRunningOnDevice = TARGET_IPHONE_SIMULATOR == 0
 
 class SwiftPerformanceTests: TestCase {
-#if swift(>=4)
     override class var defaultTestSuite: XCTestSuite {
         #if !DEBUG && os(iOS)
             if isRunningOnDevice {
@@ -46,16 +45,6 @@ class SwiftPerformanceTests: TestCase {
         #endif
         return XCTestSuite(name: "SwiftPerformanceTests")
     }
-#else
-    override class func defaultTestSuite() -> XCTestSuite {
-#if !DEBUG && os(iOS)
-        if isRunningOnDevice {
-            return super.defaultTestSuite()
-        }
-#endif
-        return XCTestSuite(name: "SwiftPerformanceTests")
-    }
-#endif
 
     override class func setUp() {
         super.setUp()
@@ -77,7 +66,6 @@ class SwiftPerformanceTests: TestCase {
         // Do nothing, as we need to keep our in-memory realms around between tests
     }
 
-#if swift(>=4)
     override func measure(_ block: (() -> Void)) {
         super.measure {
             autoreleasepool {
@@ -99,30 +87,6 @@ class SwiftPerformanceTests: TestCase {
             _ = block()
         }
     }
-
-#else
-    override func measure(_ block: @escaping (() -> Void)) {
-        super.measure {
-            autoreleasepool {
-                block()
-            }
-        }
-    }
-
-    override func measureMetrics(_ metrics: [String], automaticallyStartMeasuring: Bool, for block: @escaping () -> Void) {
-        super.measureMetrics(metrics, automaticallyStartMeasuring: automaticallyStartMeasuring) {
-            autoreleasepool {
-                block()
-            }
-        }
-    }
-
-    func inMeasureBlock(block: @escaping () -> Void) {
-        measureMetrics(type(of: self).defaultPerformanceMetrics(), automaticallyStartMeasuring: false) {
-            _ = block()
-        }
-    }
-#endif
 
     private func copyRealmToTestPath(_ realm: Realm) -> Realm {
         do {
@@ -510,11 +474,7 @@ class SwiftPerformanceTests: TestCase {
             self.startMeasuring()
             try! realm.write { object.intCol += 1 }
             while object.intCol < stopValue {
-                #if swift(>=4.2)
-                    RunLoop.current.run(mode: RunLoop.Mode.default, before: Date.distantFuture)
-                #else
-                    RunLoop.current.run(mode: RunLoopMode.defaultRunLoopMode, before: Date.distantFuture)
-                #endif
+                RunLoop.current.run(mode: RunLoop.Mode.default, before: Date.distantFuture)
             }
             queue.sync {}
             self.stopMeasuring()

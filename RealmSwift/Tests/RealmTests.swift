@@ -189,10 +189,23 @@ class RealmTests: TestCase {
 
     func testInitCustomClassList() {
         let configuration = Realm.Configuration(fileURL: Realm.Configuration.defaultConfiguration.fileURL,
-            objectTypes: [SwiftStringObject.self])
-        XCTAssert(configuration.objectTypes! is [SwiftStringObject.Type])
+                                                objectTypes: [
+                                                    EmbeddedTreeObject1.self,
+                                                    EmbeddedTreeObject2.self,
+                                                    EmbeddedTreeObject3.self,
+                                                    EmbeddedParentObject.self,
+                                                    SwiftStringObject.self
+        ])
+        let sorted = configuration.objectTypes!.sorted { $0.className() < $1.className() }
+        XCTAssertTrue(sorted[0] is EmbeddedParentObject.Type)
+        XCTAssertTrue(sorted[1] is EmbeddedTreeObject1.Type)
+        XCTAssertTrue(sorted[2] is EmbeddedTreeObject2.Type)
+        XCTAssertTrue(sorted[3] is EmbeddedTreeObject3.Type)
+        XCTAssertTrue(sorted[4] is SwiftStringObject.Type)
+
         let realm = try! Realm(configuration: configuration)
-        XCTAssertEqual(["SwiftStringObject"], realm.schema.objectSchema.map { $0.className })
+        XCTAssertEqual(["EmbeddedParentObject", "EmbeddedTreeObject1", "EmbeddedTreeObject2", "EmbeddedTreeObject3", "SwiftStringObject"],
+                       realm.schema.objectSchema.map { $0.className }.sorted())
     }
 
     func testWrite() {
@@ -215,6 +228,20 @@ class RealmTests: TestCase {
         XCTAssertEqual(try! Realm().objects(SwiftStringObject.self).count, 1)
     }
 
+    func testWriteWithoutNotifying() {
+        let realm = try! Realm()
+        let token = realm.observe { _, _ in
+            XCTFail("should not have been called")
+        }
+
+        try! realm.write(withoutNotifying: [token]) {
+            realm.deleteAll()
+        }
+
+        // local realm notifications are called synchronously so no need to wait for anything
+        token.invalidate()
+    }
+
     func testDynamicWriteSubscripting() {
         try! Realm().beginWrite()
         let object = try! Realm().dynamicCreate("SwiftStringObject", value: ["1"])
@@ -233,6 +260,14 @@ class RealmTests: TestCase {
         try! Realm().beginWrite()
         try! Realm().create(SwiftStringObject.self, value: ["1"])
         XCTAssertEqual(try! Realm().objects(SwiftStringObject.self).count, 1)
+    }
+
+    func testWriteReturning() {
+        let realm = try! Realm()
+        let object = try! realm.write {
+            return realm.create(SwiftStringObject.self, value: ["1"])
+        }
+        XCTAssertEqual(object.stringCol, "1")
     }
 
     func testCommitWrite() {
@@ -293,7 +328,7 @@ class RealmTests: TestCase {
 
     func testAddSingleObject() {
         let realm = try! Realm()
-        assertThrows(_ = realm.add(SwiftObject()))
+        assertThrows(realm.add(SwiftObject()))
         XCTAssertEqual(0, realm.objects(SwiftObject.self).count)
         var defaultRealmObject: SwiftObject!
         try! realm.write {
@@ -307,7 +342,7 @@ class RealmTests: TestCase {
 
         let testRealm = realmWithTestPath()
         try! testRealm.write {
-            self.assertThrows(_ = testRealm.add(defaultRealmObject))
+            self.assertThrows(testRealm.add(defaultRealmObject))
         }
     }
 
@@ -326,13 +361,13 @@ class RealmTests: TestCase {
 
         let testRealm = realmWithTestPath()
         try! testRealm.write {
-            self.assertThrows(_ = testRealm.add(defaultRealmObject, update: .all))
+            self.assertThrows(testRealm.add(defaultRealmObject, update: .all))
         }
     }
 
     func testAddMultipleObjects() {
         let realm = try! Realm()
-        assertThrows(_ = realm.add([SwiftObject(), SwiftObject()]))
+        assertThrows(realm.add([SwiftObject(), SwiftObject()]))
         XCTAssertEqual(0, realm.objects(SwiftObject.self).count)
         try! realm.write {
             let objs = [SwiftObject(), SwiftObject()]
@@ -343,7 +378,7 @@ class RealmTests: TestCase {
 
         let testRealm = realmWithTestPath()
         try! testRealm.write {
-            self.assertThrows(_ = testRealm.add(realm.objects(SwiftObject.self)))
+            self.assertThrows(testRealm.add(realm.objects(SwiftObject.self)))
         }
     }
 
@@ -359,7 +394,7 @@ class RealmTests: TestCase {
 
         let testRealm = realmWithTestPath()
         try! testRealm.write {
-            self.assertThrows(_ = testRealm.add(realm.objects(SwiftPrimaryStringObject.self), update: .all))
+            self.assertThrows(testRealm.add(realm.objects(SwiftPrimaryStringObject.self), update: .all))
         }
     }
 
@@ -368,24 +403,24 @@ class RealmTests: TestCase {
     func testDeleteSingleObject() {
         let realm = try! Realm()
         XCTAssertEqual(0, realm.objects(SwiftObject.self).count)
-        assertThrows(_ = realm.delete(SwiftObject()))
+        assertThrows(realm.delete(SwiftObject()))
         var defaultRealmObject: SwiftObject!
         try! realm.write {
             defaultRealmObject = SwiftObject()
-            self.assertThrows(_ = realm.delete(defaultRealmObject))
+            self.assertThrows(realm.delete(defaultRealmObject))
             XCTAssertEqual(0, realm.objects(SwiftObject.self).count)
             realm.add(defaultRealmObject)
             XCTAssertEqual(1, realm.objects(SwiftObject.self).count)
             realm.delete(defaultRealmObject)
             XCTAssertEqual(0, realm.objects(SwiftObject.self).count)
         }
-        assertThrows(_ = realm.delete(defaultRealmObject))
+        assertThrows(realm.delete(defaultRealmObject))
         XCTAssertEqual(0, realm.objects(SwiftObject.self).count)
 
         let testRealm = realmWithTestPath()
-        assertThrows(_ = testRealm.delete(defaultRealmObject))
+        assertThrows(testRealm.delete(defaultRealmObject))
         try! testRealm.write {
-            self.assertThrows(_ = testRealm.delete(defaultRealmObject))
+            self.assertThrows(testRealm.delete(defaultRealmObject))
         }
     }
 
@@ -403,9 +438,9 @@ class RealmTests: TestCase {
         XCTAssertEqual(0, realm.objects(SwiftObject.self).count)
 
         let testRealm = realmWithTestPath()
-        assertThrows(_ = testRealm.delete(objs))
+        assertThrows(testRealm.delete(objs))
         try! testRealm.write {
-            self.assertThrows(_ = testRealm.delete(objs))
+            self.assertThrows(testRealm.delete(objs))
         }
     }
 
@@ -483,6 +518,10 @@ class RealmTests: TestCase {
 
         XCTAssertEqual(object["boolCol"] as? NSNumber, dictionary["boolCol"] as! NSNumber?)
         XCTAssertEqual(object["intCol"] as? NSNumber, dictionary["intCol"] as! NSNumber?)
+        XCTAssertEqual(object["int8Col"] as? NSNumber, dictionary["int8Col"] as! NSNumber?)
+        XCTAssertEqual(object["int16Col"] as? NSNumber, dictionary["int16Col"] as! NSNumber?)
+        XCTAssertEqual(object["int32Col"] as? NSNumber, dictionary["int32Col"] as! NSNumber?)
+        XCTAssertEqual(object["int64Col"] as? NSNumber, dictionary["int64Col"] as! NSNumber?)
         XCTAssertEqual(object["floatCol"] as! Float, dictionary["floatCol"] as! Float, accuracy: 0.001)
         XCTAssertEqual(object["doubleCol"] as? NSNumber, dictionary["doubleCol"] as! NSNumber?)
         XCTAssertEqual(object["stringCol"] as! String?, dictionary["stringCol"] as! String?)
@@ -510,6 +549,8 @@ class RealmTests: TestCase {
         XCTAssertEqual(object["optNSStringCol"] as! String?, dictionary["optNSStringCol"] as! String?)
         XCTAssertEqual(object["optBinaryCol"] as! NSData?, dictionary["optBinaryCol"] as! NSData?)
         XCTAssertEqual(object["optDateCol"] as! Date?, dictionary["optDateCol"] as! Date?)
+        XCTAssertEqual(object["optDecimalCol"] as! Decimal128?, dictionary["optDecimalCol"] as! Decimal128?)
+        XCTAssertEqual(object["optObjectIdCol"] as! ObjectId?, dictionary["optObjectIdCol"] as! ObjectId?)
         XCTAssertEqual((object["optObjectCol"] as? SwiftBoolObject)?.boolCol, true)
     }
 
@@ -526,6 +567,10 @@ class RealmTests: TestCase {
         for object in objects {
             XCTAssertEqual(object["boolCol"] as? NSNumber, dictionary["boolCol"] as! NSNumber?)
             XCTAssertEqual(object["intCol"] as? NSNumber, dictionary["intCol"] as! NSNumber?)
+            XCTAssertEqual(object["int8Col"] as? NSNumber, dictionary["int8Col"] as! NSNumber?)
+            XCTAssertEqual(object["int16Col"] as? NSNumber, dictionary["int16Col"] as! NSNumber?)
+            XCTAssertEqual(object["int32Col"] as? NSNumber, dictionary["int32Col"] as! NSNumber?)
+            XCTAssertEqual(object["int64Col"] as? NSNumber, dictionary["int64Col"] as! NSNumber?)
             XCTAssertEqual(object["floatCol"] as? NSNumber, dictionary["floatCol"] as! NSNumber?)
             XCTAssertEqual(object["doubleCol"] as? NSNumber, dictionary["doubleCol"] as! NSNumber?)
             XCTAssertEqual(object["stringCol"] as! String?, dictionary["stringCol"] as! String?)
@@ -738,8 +783,10 @@ class RealmTests: TestCase {
         // test that autoreresh is not applied
         // we have two notifications, one for opening the realm, and a second when performing our transaction
         let notificationFired = expectation(description: "notification fired")
-        let token = realm.observe { _, realm in
+        var token: NotificationToken!
+        token = realm.observe { _, realm in
             XCTAssertNotNil(realm, "Realm should not be nil")
+            token.invalidate()
             notificationFired.fulfill()
         }
 
@@ -748,12 +795,10 @@ class RealmTests: TestCase {
 
         dispatchSyncNewThread {
             try! Realm().write {
-                try! Realm().create(SwiftStringObject.self, value: ["string"])
-                return
+                _ = try! Realm().create(SwiftStringObject.self, value: ["string"])
             }
         }
         waitForExpectations(timeout: 1, handler: nil)
-        token.invalidate()
 
         XCTAssertEqual(results.count, Int(0), "There should be 1 object of type StringObject")
 
@@ -782,22 +827,18 @@ class RealmTests: TestCase {
         XCTAssertEqual(object.isInvalidated, true)
     }
 
-    func testWriteCopyToPath() {
-        let realm = try! Realm()
-        try! realm.write {
+    func testWriteCopyToPath() throws {
+        let realm = try Realm()
+        try realm.write {
             realm.add(SwiftObject())
         }
         let fileURL = defaultRealmURL().deletingLastPathComponent().appendingPathComponent("copy.realm")
-        do {
-            try realm.writeCopy(toFile: fileURL)
-        } catch {
-            XCTFail("writeCopyToURL failed")
-        }
-        autoreleasepool {
-            let copy = try! Realm(fileURL: fileURL)
+        try realm.writeCopy(toFile: fileURL)
+        try autoreleasepool {
+            let copy = try Realm(fileURL: fileURL)
             XCTAssertEqual(1, copy.objects(SwiftObject.self).count)
         }
-        try! FileManager.default.removeItem(at: fileURL)
+        try FileManager.default.removeItem(at: fileURL)
     }
 
     func testEquals() {
@@ -830,5 +871,32 @@ class RealmTests: TestCase {
         } catch {
             XCTFail("Failed to brigde RLMError to Realm.Error")
         }
+    }
+
+    func testExists() {
+        let config = Realm.Configuration()
+        XCTAssertFalse(Realm.fileExists(for: config))
+        autoreleasepool { _ = try! Realm(configuration: config) }
+        XCTAssertTrue(Realm.fileExists(for: config))
+        XCTAssertTrue(try! Realm.deleteFiles(for: config))
+        XCTAssertFalse(Realm.fileExists(for: config))
+    }
+
+    func testThaw() {
+        XCTAssertEqual(try! Realm().objects(SwiftBoolObject.self).count, 0)
+        let realm = try! Realm()
+        let frozenRealm = realm.freeze()
+        XCTAssert(frozenRealm.isFrozen)
+
+        dispatchSyncNewThread {
+            let thawedRealm = frozenRealm.thaw()
+            XCTAssertFalse(thawedRealm.isFrozen)
+            try! thawedRealm.write {
+                try! Realm().create(SwiftBoolObject.self, value: ["boolCol": true])
+            }
+        }
+        XCTAssertEqual(try! Realm().objects(SwiftBoolObject.self).count, 0)
+        realm.refresh()
+        XCTAssertEqual(try! Realm().objects(SwiftBoolObject.self).count, 1)
     }
 }
